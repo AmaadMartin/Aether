@@ -1,0 +1,10 @@
+env/
+__pycache__
+api/.env
+app/.env
+api/__pycache__
+library/__pycache__
+app/node_modules/
+library/test.ipynb
+api.txt
+app.txt
