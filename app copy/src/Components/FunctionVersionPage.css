@@ -1,0 +1,42 @@
+/* src/Components/FunctionVersionPage.css */
+.function-version-container {
+  flex-grow: 1;
+  padding: 16px; /* 2 units */
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  text-decoration: none;
+  color: #1976d2;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.sidebar {
+  border-right: 1px solid #ccc;
+}
+
+.sidebar-content {
+  height: calc(100vh - 80px); /* Adjust based on your header/footer */
+  overflow: auto;
+}
+
+.main-content {
+  padding: 16px;
+}
+
+.main-content-box {
+  padding: 16px;
+}
+
+.prompt-editor-box {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.eval-tests-container {
+  margin-top: 16px;
+}

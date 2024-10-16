@@ -8,3 +8,5 @@ app/node_modules/
 library/test.ipynb
 api.txt
 app.txt
+app\ copy/node_modules
+app\ copy/.env

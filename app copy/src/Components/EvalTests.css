@@ -1,0 +1,22 @@
+/* src/Components/EvalTests.css */
+
+.eval-tests-message {
+  padding: 32px;
+}
+
+.eval-tests-content {
+  padding: 16px;
+}
+
+.test-paper {
+  padding: 16px;
+}
+
+.json-display {
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 14px;
+}

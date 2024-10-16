@@ -1,0 +1,26 @@
+.tree-container {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .node-group text {
+    font-family: Roboto, sans-serif;
+  }
+  
+  .node-circle {
+    fill: #61dafb;
+    stroke: #1a6d9e;
+    stroke-width: 2;
+  }
+  
+  .node-circle-selected {
+    fill: #1a6d9e;
+    stroke: #1a6d9e;
+    stroke-width: 2;
+  }
+  
+  .node-circle-deployed {
+    fill: purple;
+    stroke: purple;
+    stroke-width: 2;
+  }

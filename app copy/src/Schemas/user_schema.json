@@ -1,0 +1,122 @@
+{
+    "username": "test_user",
+    "functions": [
+        {
+            "name": "test_function",
+            "task": "test_task",
+            "input_schema":
+            {
+                "type": "object",
+                "properties": {
+                    "test_property": {
+                        "type": "string"
+                    }
+                }
+            },
+            "output_schema":
+            {
+                "type": "object",
+                "properties": {
+                    "test_property": {
+                        "type": "string",
+                        "desired_properties": [
+                            "test_desired_property"
+                        ]
+                    }
+                }
+            },
+            "test_set": [
+                {
+                    "input": {
+                        "test_property": "test_value"
+                    }
+                },
+                {
+                    "input": {
+                        "test_property": "test_value"
+                    }
+                },
+                {
+                    "input": {
+                        "test_property": "test_value"
+                    }
+                }
+            ],
+            "version_tree":{
+                    "name": "v1.0",
+                    "date": "2023-10-01",
+                    "prompt": "Translate to french",
+                    "children": [
+                        {
+                            "name": "v1.1",
+                            "date": "2023-10-01",
+                            "prompt": "Translate to french, be accurate and concise",
+                            "children": []
+                        },
+                        {
+                            "name": "v1.2",
+                            "date": "2023-10-01",
+                            "prompt": "Translate to french, be accurate and concise, improve translation speed",
+                            "children": [
+                                {
+                                    "name": "v1.2.1",
+                                    "date": "2023-10-01",
+                                    "prompt": "Translate from english to french, be accurate and concise, improve translation speed",
+                                    "children": []
+                                    ,
+                                    "evals":
+                                    [
+                                        {
+                                            "input": {
+                                                "test_property": "test_value"
+                                            },
+                                            "output": {
+                                                "test_property": {
+                                                    "value": "test_value",
+                                                    "scores": {
+                                                        "test_desired_property": 0.8
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            "evals":
+                            [
+                                {
+                                    "input": {
+                                        "test_property": "test_value"
+                                    },
+                                    "output": {
+                                        "test_property": {
+                                            "value": "test_value",
+                                            "scores": {
+                                                "test_desired_property": 0.8
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "evals":
+                    [
+                        {
+                            "input": {
+                                "test_property": "test_value"
+                            },
+                            "output": {
+                                "test_property": {
+                                    "value": "test_value",
+                                    "property_scores": {
+                                        "test_desired_property": 0.8
+                                    }
+                                }
+                            }
+                        }
+                    ]
+            }
+        }
+    ]
+}
