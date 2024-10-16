@@ -3,21 +3,38 @@ import requests
 import json
 from openai import OpenAI
 import jsonschema
+from pydantic import BaseModel
+import asyncio
+import aiohttp
+import threading
+
+BASE_URL = "http://localhost:8000"
+
+class EvaluationInput(BaseModel):
+    task: str
+    input: dict
+    output_schema: dict
+    output: dict
+    version: str
+    function_key: str
+    api_key: str
 
 class AetherClient:
-    def __init__(self, api_key, openai_api_key, base_url="http://localhost:8000"):
+    def __init__(self, api_key, openai_api_key, base_url=BASE_URL):
         self.api_key = api_key
         self.openai_api_key = openai_api_key
         self.base_url = base_url
         self.openai = OpenAI(api_key = self.openai_api_key)
 
-    def __call__(self, function_key, input_json):
-        return self.call_function(function_key, input_json)
+    def __call__(self, function_key, input_json, version=None):
+        return self.call_function(function_key, input_json, version)
 
-    def call_function(self, function_key, input_json):
+    def call_function(self, function_key, input_json, version=None):
         # Get function parameters
         headers = {'X-API-Key': self.api_key}
-        response = requests.get(f"{self.base_url}/function_call/{function_key}", headers=headers)
+        if version is None:
+            version = "None"
+        response = requests.get(f"{self.base_url}/function_call/{function_key}/{version}", headers=headers)
         if response.status_code != 200:
             raise Exception(f"Error retrieving function parameters: {response.text}")
         function_params = response.json()
@@ -33,12 +50,12 @@ class AetherClient:
         prompt = function_params['prompt']
         model = function_params['model']
         temperature = function_params['temperature']
-        output_schema = function_params['output_schema']
+        old_schema = function_params['output_schema']
 
         input = f"{json.dumps(input_json)}"
 
         # convert output schema format
-        output_schema = self.convert_output_schema_to_openai_function_definition(output_schema)
+        output_schema = self.convert_output_schema_to_openai_function_definition(old_schema)
         # print(output_schema)
 
         # Make OpenAI API call
@@ -55,10 +72,36 @@ class AetherClient:
             }
         )
 
-        output = response.choices[0].message.content
-        # print("message", response.choices[0].message.content)
-        # print("parsed", json.loads(response.choices[0].message.content))
-        return json.loads(output)
+        output = json.loads(response.choices[0].message.content)
+
+        input_data = {
+            "task": function_params['task'],
+            "input": input_json,
+            "output_schema": old_schema,
+            "output": output,
+            "version": function_params['version'],
+            "function_key": function_key,
+            "api_key": self.api_key
+        }
+        # print("input params", input_data)
+        thread = threading.Thread(target=self._run_async_evaluation, args=(input_data, headers))
+        thread.start()
+
+        return output
+        
+        # send task, input, output schema, and output to api for evaluation asynchronously
+        asyncio.create_task(self.evaluate_output_async(input_data, headers))
+        return output
+    
+    def _run_async_evaluation(self, input_data, headers):
+        asyncio.run(self.evaluate_output_async(input_data, headers))
+
+    async def evaluate_output_async(self, input_data, headers):
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.base_url}/evaluate", json=input_data, headers=headers) as response:
+                if response.status != 200:
+                    raise Exception(f"Error evaluating output: {await response.text()}")
+        
     
     def convert_output_schema_to_openai_function_definition(self, output_schema):
     # Remove 'metrics' fields and 'title'
@@ -69,7 +112,7 @@ class AetherClient:
                 schema.pop('metrics', None)
                 schema.pop('title', None)
                 schema.pop('description', None)
-                schema.pop('metrics', None)
+                schema.pop('desiredProperties', None)
                 if 'properties' in schema:
                     schema['properties'] = {k: clean_schema(v) for k, v in schema['properties'].items()}
                 if 'items' in schema:

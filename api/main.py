@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI, HTTPException, Depends, status, Request, Query
+from fastapi import FastAPI, HTTPException, Depends, status, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -12,10 +12,10 @@ from google.auth.transport import requests
 from dotenv import load_dotenv
 import os
 import uvicorn
-from Evaluation import evaluate_function
+from Evaluation import evaluate_function, grade_output
+from TestGeneration import generate_tests_from_schema
 import secrets
 from decimal import Decimal
-
 load_dotenv()
 
 app = FastAPI()
@@ -52,6 +52,11 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(oauth2_sche
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
 
+class GenerateTestsRequest(BaseModel):
+    in_schema: dict
+    num_tests: int = 1
+    task: str
+
 # Models for creating a function
 class Attribute(BaseModel):
     name: str
@@ -80,6 +85,15 @@ class UpdateParametersSchema(BaseModel):
 # Model for deploying a version
 class DeployVersionSchema(BaseModel):
     version_name: str
+
+class EvaluationInput(BaseModel):
+    task: str
+    input: dict
+    output_schema: dict
+    output: dict
+    version: str
+    function_key: str
+    api_key: str
 
 # Authentication endpoint
 @app.post('/auth/login')
@@ -122,6 +136,14 @@ def login(data: dict):
         return {"email": email, "api_key": user_api_key}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    
+@app.post('/generate_tests')
+def generate_tests_endpoint(request: GenerateTestsRequest):
+    input_schema = request.in_schema
+    num_tests = request.num_tests
+    task = request.task
+    generated_tests = generate_tests_from_schema(task, input_schema, num_tests)
+    return {"tests": generated_tests}
 
 # Endpoint to create a new function
 @app.post('/users/{username}/functions')
@@ -239,17 +261,29 @@ def update_parameters(username: str, function_index: int, update: UpdateParamete
     # Add new version as child
     current_version.setdefault('children', []).append(new_version)
 
-    # Evaluate the function with the new version
-    tests = function.get('test_set', [])
-    if not tests:
-        raise HTTPException(status_code=400, detail="Test set is empty")
-    eval_data = evaluate_function(function, new_version, tests)
-    new_version['evals'] += eval_data
-
     # Update DynamoDB
     user_table.put_item(Item=user_data)
 
-    return {"message": "Parameters updated, new version created, and evaluation added successfully"}
+    # # evaluate funciton and update versions evals   
+    # tests = function['test_set']
+    # if not tests:
+    #     raise HTTPException(status_code=400, detail="Test set is empty")
+    
+    # eval_data = evaluate_function(function, new_version, tests, user_data['api_key'])
+    # print("Eval data: ", eval_data)
+    # def update_version_node(node, name, eval_data):
+    #     if node['name'] == name:
+    #         node['evals'] += eval_data
+    #         return True
+    #     for child in node.get('children', []):
+    #         result = update_version_node(child, name, eval_data)
+    #         if result:
+    #             return True
+    #     return False
+    
+    # update_version_node(function['version_tree'], new_version_name, eval_data)
+
+    return {"message": "Parameters updated, new version created, and evaluation added successfully", "version": new_version_name}
 
 # Endpoint to deploy a version
 @app.post('/users/{username}/functions/{function_index}/deploy_version')
@@ -321,34 +355,112 @@ def evaluate_function_version(username: str, func_index: int, version_name: str)
                 return result
         return None
 
-    current_version = find_version_node(version_tree, version_name)
-    if not current_version:
-        raise HTTPException(status_code=404, detail="Version not found")
+    # current_version = find_version_node(version_tree, version_name)
+    # if not current_version:
+    #     raise HTTPException(status_code=404, detail="Version not found")
     
     tests = function['test_set']
     if not tests:
         raise HTTPException(status_code=400, detail="Test set is empty")
     
-    eval_data = evaluate_function(function, current_version, tests)
-    def update_version_node(node, name, eval_data):
+    evaluate_function(function, version_name, tests, user_data['api_key'])
+    # print("Eval data: ", eval_data)
+    # def update_version_node(node, name, eval_data):
+    #     if node['name'] == name:
+    #         node['evals'] += eval_data
+    #         return True
+    #     for child in node.get('children', []):
+    #         result = update_version_node(child, name, eval_data)
+    #         if result:
+    #             return True
+    #     return False
+    
+    # update_version_node(version_tree, version_name, eval_data)
+
+    # user_table.put_item(Item=user_data)
+
+    return {"message": "Evaluation added successfully"}
+
+# Endpoint to evaluate single input output pair
+@app.post('/evaluate')
+def evaluate_input_output_pair(input_data: EvaluationInput):
+    # print(dict(input_data))
+    task = input_data.task
+    input = input_data.input
+    output_schema = input_data.output_schema
+    output = input_data.output
+    version = input_data.version
+    function_key = input_data.function_key
+    api_key = input_data.api_key
+    # print("params: ", task, input, output_schema, output, version, function_key, api_key)
+    eval = grade_output(task, input, output_schema, output)
+    # print("Eval: ", eval)
+
+    # add eval to version node
+    def add_eval(node, name, eval_data):
         if node['name'] == name:
-            node['evals'] += eval_data
+            node['evals'].append(eval_data)
             return True
         for child in node.get('children', []):
-            result = update_version_node(child, name, eval_data)
+            result = add_eval(child, name, eval_data)
             if result:
                 return True
         return False
     
-    update_version_node(version_tree, version_name, eval_data)
+    # find user with api_key
+    scan_kwargs = {
+        'FilterExpression': 'api_key = :api_key',
+        'ExpressionAttributeValues': {
+            ':api_key': api_key
+        }
+    }
+    response = user_table.scan(**scan_kwargs)
+    if 'Items' not in response or len(response['Items']) == 0:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    user_data = response['Items'][0]
 
+    functions = user_data.get('functions', [])
+    function = next((f for f in functions if f.get('function_key') == function_key), None)
+    if not function:
+        raise HTTPException(status_code=404, detail="Function not found")
+    
+    version_tree = function['version_tree']
+    
+    add_eval(version_tree, version, eval)
+
+    # if input not in function's test_set add it
+    input_exists = False
+    for index, other_input in enumerate(function['test_set']):
+        print("other_input", other_input)
+        print("input", input)
+        print("types", type(other_input), type(input))
+        if other_input == input:
+            input_exists = True
+            break
+        if type(other_input) == str:
+            # remove string inputs
+            function['test_set'].pop(index)
+    if not input_exists:
+        # add input to test_set using aws sdk
+        function['test_set'].append({
+            'input': input,
+        })
+        print("input added to test_set", input)
+
+    # update function in user_data
     user_table.put_item(Item=user_data)
 
-    return {"message": "Evaluation added successfully"}
+    
+
+    print("done evaluating")
+    
+    # add evaluation to version node
+    return {"message": "success"}
 
 # Endpoint to get function parameters for function call
+@app.get('/function_call/{function_key}/{version}')
 @app.get('/function_call/{function_key}')
-def get_function_parameters(function_key: str, request: Request, version: str = Query(None)):
+def get_function_parameters(function_key: str, request: Request, version: str = None):
     api_key = request.headers.get('X-API-Key')
     if not api_key:
         raise HTTPException(status_code=401, detail="API key missing")
@@ -372,7 +484,7 @@ def get_function_parameters(function_key: str, request: Request, version: str = 
         raise HTTPException(status_code=404, detail="Function not found")
 
     # Determine the version to use
-    version_name = version if version else function.get('current_version')
+    version_name = version if version != "None" else function.get('current_version')
 
     if not version_name:
         raise HTTPException(status_code=400, detail="Version not specified and no current version set")
@@ -397,7 +509,9 @@ def get_function_parameters(function_key: str, request: Request, version: str = 
         'model': version_node['model'],
         'temperature': version_node['temperature'],
         'input_schema': function['input_schema'],
-        'output_schema': function['output_schema']
+        'output_schema': function['output_schema'],
+        'version': version_name,
+        'task': function['task']
     }
 
 if __name__ == "__main__":
