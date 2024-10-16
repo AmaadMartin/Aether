@@ -1,0 +1,20 @@
+/* src/Components/SchemaBuilder.css */
+
+.property-box {
+    border: 1px solid #ccc;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+  
+  .nested-property-box {
+    border: 1px dashed #aaa;
+    padding: 16px;
+    margin-top: 16px;
+    border-radius: 8px;
+  }
+  
+  .expand-button {
+    margin-bottom: 8px;
+  }
+  

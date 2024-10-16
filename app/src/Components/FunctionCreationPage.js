@@ -16,30 +16,21 @@ import {
   DialogActions,
 } from "@mui/material";
 import { AddCircleOutline, RemoveCircleOutline } from "@mui/icons-material";
-import Form from "@rjsf/mui";
-import validator from "@rjsf/validator-ajv8";
-
-// Import the attribute schemas
-import {
-  attributeSchema,
-  outputAttributeSchema,
-} from "../Schemas/attributeSchema";
-
-// Import the API service
+import SchemaBuilder from "./SchemaBuilder"; // Import the updated SchemaBuilder
 import api from "../Services/api";
 
 const FunctionCreationPage = () => {
   // State for Input and Output JSON Schemas
   const [inputSchemaState, setInputSchemaState] = useState({
-    title: "Input Schema",
     type: "object",
     properties: {},
+    required: [],
   });
 
   const [outputSchemaState, setOutputSchemaState] = useState({
-    title: "Output Schema",
     type: "object",
     properties: {},
+    required: [],
   });
 
   // State for Prompt, Task, and Function Name
@@ -58,70 +49,48 @@ const FunctionCreationPage = () => {
   const [currentTestInput, setCurrentTestInput] = useState("");
   const [editTestIndex, setEditTestIndex] = useState(null);
 
-  // Handlers for schema changes
-  const handleInputSchemaChange = ({ formData }) => {
-    const properties = {};
-    if (formData.attributes) {
-      formData.attributes.forEach((attr) => {
-        properties[attr.name] = convertAttributeToSchema(attr);
-      });
-    }
-
-    setInputSchemaState({
-      title: "Input Schema",
-      type: "object",
-      properties,
-    });
+  // Handlers for Schema Changes
+  const handleInputSchemaChange = (updatedSchema) => {
+    setInputSchemaState(updatedSchema);
   };
 
-  const handleOutputSchemaChange = ({ formData }) => {
-    const properties = {};
-    if (formData.attributes) {
-      formData.attributes.forEach((attr) => {
-        properties[attr.name] = convertAttributeToSchema(attr);
-      });
-    }
-
-    setOutputSchemaState({
-      title: "Output Schema",
-      type: "object",
-      properties,
-    });
-  };
-
-  // Function to convert a single attribute to schema property
-  const convertAttributeToSchema = (attr) => {
-    const propertySchema = {
-      type: attr.type,
-    };
-
-    // Include desiredProperties in the schema for output attributes
-    if (attr.desiredProperties) {
-      propertySchema.desiredProperties = attr.desiredProperties;
-    }
-
-    if (attr.type === "object" && attr.properties) {
-      propertySchema.properties = convertAttributesToSchema(attr.properties);
-    } else if (attr.type === "array" && attr.items) {
-      propertySchema.items = {
-        type: "object",
-        properties: convertAttributesToSchema(attr.items),
-      };
-    }
-    return propertySchema;
-  };
-
-  // Recursive function to convert attributes array to schema properties
-  const convertAttributesToSchema = (attributes) => {
-    const schemaProperties = {};
-    if (!attributes) return schemaProperties;
-    attributes.forEach((attr) => {
-      schemaProperties[attr.name] = convertAttributeToSchema(attr);
-    });
-    return schemaProperties;
+  const handleOutputSchemaChange = (updatedSchema) => {
+    setOutputSchemaState(updatedSchema);
   };
 
   const handleCreateFunction = async () => {
+    // Validate Function Name
+    if (!functionName.trim()) {
+      alert("Function Name is required.");
+      return;
+    }
+
+    // Validate Prompt and Task
+    if (!prompt.trim()) {
+      alert("LLM Prompt is required.");
+      return;
+    }
+    if (!task.trim()) {
+      alert("Task Description is required.");
+      return;
+    }
+
+    // Validate Schemas
+    if (Object.keys(inputSchemaState.properties).length === 0) {
+      alert("Input Schema must have at least one property.");
+      return;
+    }
+    if (Object.keys(outputSchemaState.properties).length === 0) {
+      alert("Output Schema must have at least one property.");
+      return;
+    }
+
+    // Validate Test Set
+    if (testSet.length === 0) {
+      alert("At least one test case is required.");
+      return;
+    }
+
     const functionData = {
       name: functionName,
       task,
@@ -142,152 +111,27 @@ const FunctionCreationPage = () => {
       );
 
       // Redirect or update UI as needed
+      // For example, navigate to the function list page or reset the form
+      // Here, we'll reset the form
+      setFunctionName("");
+      setTask("");
+      setPrompt("");
+      setInputSchemaState({
+        type: "object",
+        properties: {},
+        required: [],
+      });
+      setOutputSchemaState({
+        type: "object",
+        properties: {},
+        required: [],
+      });
+      setTestSet([]);
     } catch (error) {
       console.error(error);
-      alert("Error creating function");
+      alert("Error creating function. Please check the console for details.");
     }
   };
-
-  // UI Schema for managing attributes
-  const attributesUISchema = {
-    items: {
-      "ui:options": {
-        addable: true,
-        orderable: false,
-        removable: true,
-      },
-      properties: {
-        name: {
-          "ui:autofocus": true,
-          "ui:placeholder": "Enter attribute name",
-        },
-        type: {
-          "ui:widget": "select",
-        },
-        desiredProperties: {
-          "ui:options": {
-            addable: true,
-            orderable: false,
-            removable: true,
-          },
-          items: {
-            "ui:emptyValue": "",
-          },
-        },
-        properties: {
-          "ui:options": {
-            orderable: false,
-            removable: true,
-          },
-        },
-        items: {
-          "ui:options": {
-            orderable: false,
-            removable: true,
-          },
-        },
-      },
-    },
-  };
-
-  // Custom Array Field Template with Add and Remove buttons
-  const CustomArrayFieldTemplate = (props) => {
-    const { items, canAdd, onAddClick } = props;
-    return (
-      <div>
-        {items.map((element) => (
-          <Box key={element.key} className="attribute-box">
-            <Paper className="attribute-paper">
-              <IconButton
-                aria-label="remove attribute"
-                onClick={element.onDropIndexClick(element.index)}
-                className="remove-button"
-                color="error"
-              >
-                <RemoveCircleOutline />
-              </IconButton>
-              {element.children}
-            </Paper>
-          </Box>
-        ))}
-        {canAdd && (
-          <Box className="add-attribute-button-container">
-            <Button
-              variant="outlined"
-              startIcon={<AddCircleOutline />}
-              onClick={onAddClick}
-            >
-              Add Attribute
-            </Button>
-          </Box>
-        )}
-      </div>
-    );
-  };
-
-  // Complete schema for input form including definitions
-  const inputFormSchema = {
-    type: "object",
-    title: "Input Attributes",
-    properties: {
-      attributes: {
-        type: "array",
-        title: "Attributes",
-        items: {
-          $ref: "#/definitions/attribute",
-        },
-        uniqueItems: true,
-      },
-    },
-    definitions: {
-      attribute: attributeSchema,
-    },
-  };
-
-  // Complete schema for output form including definitions
-  const outputFormSchema = {
-    type: "object",
-    name: "Output",
-    properties: {
-      attributes: {
-        type: "array",
-        title: "Attributes",
-        items: {
-          $ref: "#/definitions/outputAttribute",
-        },
-        uniqueItems: true,
-      },
-    },
-    definitions: {
-      attribute: attributeSchema,
-      outputAttribute: outputAttributeSchema,
-    },
-  };
-
-  // Prepare formData for input
-  const inputFormData = {
-    attributes: prepareFormData(inputSchemaState.properties),
-  };
-
-  // Prepare formData for output
-  const outputFormData = {
-    attributes: prepareFormData(outputSchemaState.properties),
-  };
-
-  // Function to prepare formData from schema properties
-  function prepareFormData(properties) {
-    if (!properties) return [];
-    return Object.keys(properties).map((key) => {
-      const prop = properties[key];
-      return {
-        name: key,
-        type: prop.type,
-        desiredProperties: prop.desiredProperties || [],
-        properties: prepareFormData(prop.properties),
-        items: prepareFormData(prop.items ? prop.items.properties : {}),
-      };
-    });
-  }
 
   // Handlers for Test Set Dialog
   const handleOpenTestDialog = (index = null) => {
@@ -345,35 +189,6 @@ const FunctionCreationPage = () => {
     }
   };
 
-  const generateDummyData = (schema) => {
-    const data = {};
-    if (schema.properties) {
-      Object.keys(schema.properties).forEach((key) => {
-        const prop = schema.properties[key];
-        switch (prop.type) {
-          case "string":
-            data[key] = "string";
-            break;
-          case "number":
-            data[key] = 0;
-            break;
-          case "boolean":
-            data[key] = true;
-            break;
-          case "object":
-            data[key] = generateDummyData(prop);
-            break;
-          case "array":
-            data[key] = [generateDummyData(prop.items)];
-            break;
-          default:
-            data[key] = null;
-        }
-      });
-    }
-    return data;
-  };
-
   return (
     <Box sx={{ flexGrow: 1, padding: 4 }}>
       <Typography variant="h4" gutterBottom>
@@ -392,29 +207,25 @@ const FunctionCreationPage = () => {
         </Grid>
 
         {/* Input Schema Panel */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ padding: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Input JSON Schema
-            </Typography>
-            <Form
-              schema={inputFormSchema}
-              uiSchema={attributesUISchema}
-              onChange={handleInputSchemaChange}
-              formData={inputFormData}
-              ArrayFieldTemplate={CustomArrayFieldTemplate}
-              validator={validator}
-            >
-              {/* The submit button is hidden */}
-              <Button type="submit" style={{ display: "none" }}>
-                Submit
-              </Button>
-            </Form>
-          </Paper>
+        <Grid item xs={12} md={6}>
+          <SchemaBuilder
+            initialSchema={inputSchemaState}
+            onSchemaChange={handleInputSchemaChange}
+            schemaType="input"
+          />
+        </Grid>
+
+        {/* Output Schema Panel */}
+        <Grid item xs={12} md={6}>
+          <SchemaBuilder
+            initialSchema={outputSchemaState}
+            onSchemaChange={handleOutputSchemaChange}
+            schemaType="output"
+          />
         </Grid>
 
         {/* Prompt and Task Panel */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ padding: 3 }}>
             <Typography variant="h6" gutterBottom>
               Prompt and Task
@@ -439,28 +250,6 @@ const FunctionCreationPage = () => {
                 fullWidth
               />
             </Box>
-          </Paper>
-        </Grid>
-
-        {/* Output Schema Panel */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ padding: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Output JSON Schema
-            </Typography>
-            <Form
-              schema={outputFormSchema}
-              uiSchema={attributesUISchema}
-              onChange={handleOutputSchemaChange}
-              formData={outputFormData}
-              ArrayFieldTemplate={CustomArrayFieldTemplate}
-              validator={validator}
-            >
-              {/* The submit button is hidden */}
-              <Button type="submit" style={{ display: "none" }}>
-                Submit
-              </Button>
-            </Form>
           </Paper>
         </Grid>
 

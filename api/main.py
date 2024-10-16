@@ -363,21 +363,21 @@ def evaluate_function_version(username: str, func_index: int, version_name: str)
     if not tests:
         raise HTTPException(status_code=400, detail="Test set is empty")
     
-    evaluate_function(function, version_name, tests, user_data['api_key'])
-    # print("Eval data: ", eval_data)
-    # def update_version_node(node, name, eval_data):
-    #     if node['name'] == name:
-    #         node['evals'] += eval_data
-    #         return True
-    #     for child in node.get('children', []):
-    #         result = update_version_node(child, name, eval_data)
-    #         if result:
-    #             return True
-    #     return False
+    eval_data = evaluate_function(function, version_name, tests, user_data['api_key'])
+    print("Eval data: ", eval_data)
+    def update_version_node(node, name, eval_data):
+        if node['name'] == name:
+            node['evals'] += eval_data
+            return True
+        for child in node.get('children', []):
+            result = update_version_node(child, name, eval_data)
+            if result:
+                return True
+        return False
     
-    # update_version_node(version_tree, version_name, eval_data)
+    update_version_node(version_tree, version_name, eval_data)
 
-    # user_table.put_item(Item=user_data)
+    user_table.put_item(Item=user_data)
 
     return {"message": "Evaluation added successfully"}
 
@@ -416,12 +416,14 @@ def evaluate_input_output_pair(input_data: EvaluationInput):
     }
     response = user_table.scan(**scan_kwargs)
     if 'Items' not in response or len(response['Items']) == 0:
+        print("Invalid API key")
         raise HTTPException(status_code=401, detail="Invalid API key")
     user_data = response['Items'][0]
 
     functions = user_data.get('functions', [])
     function = next((f for f in functions if f.get('function_key') == function_key), None)
     if not function:
+        print("Function not found")
         raise HTTPException(status_code=404, detail="Function not found")
     
     version_tree = function['version_tree']

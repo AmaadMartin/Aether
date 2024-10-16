@@ -24,7 +24,7 @@ def evaluate_function(function, version, tests, user_api_key):
         aether = AetherClient(user_api_key, os.getenv("OPENAI_API_KEY"))
         input_data = test['input']
         # print("THIS IS THE INPUT DATA", input_data)
-        output = aether(function["function_key"], input_data, version=version)
+        output = aether(function["function_key"], input_data, version=version, for_eval=True)
         return grade_output(function, input_data, output_schema, output)
 
     output = []
@@ -51,22 +51,25 @@ def grade_output(task, input, output_schema, output):
             "json_schema": response_format
         }
     )
+    print("response", response)
 
-    output= response.choices[0].message.content
+    output = response.choices[0].message.content
 
     response = {
         "input": input,
         "output": json.loads(output)
     }
+    print("formatted response", response)
     return response
 
 
 def convert_output_schema_to_openai_function_definition(output_schema):
     # Remove 'metrics' fields and 'title'
-    # print('output_schema', output_schema)
+    print('output_schema', output_schema)
     cleaned_schema = {}
     def clean_schema(schema):
         if isinstance(schema, dict):
+            old_schema = schema.copy()
             schema = schema.copy()
             schema.pop('title', None)
             if 'description' in schema:
@@ -81,19 +84,21 @@ def convert_output_schema_to_openai_function_definition(output_schema):
                 schema['required'] = list(schema['properties'].keys())
                 schema['properties']['reasoning'] = {'type': 'string'}
                 schema['required']+= ['reasoning']
-            if 'metrics' in schema:
-                if 'properties' not in schema:
-                    schema['properties'] = {}
+            if 'metrics' in schema :
+                schema['type'] = 'object'
+                schema['properties'] = {}
+                schema['properties']['models_output'] = old_schema
                 schema['properties']['scores'] = {'type': 'object'}
                 schema['properties']['scores']['properties'] = {k: {'type': 'number'} for k in schema['metrics']}
                 schema['properties']['scores']['additionalProperties'] = False
                 schema['properties']['scores']['required'] = schema['metrics']
-                schema['properties']['models_output'] = {'type': schema['type']}
-                schema['type'] = 'object'
+                schema.pop('metrics', None)
                 schema['properties']['reasoning'] = {'type': 'string'}
                 schema['required'] = ['scores', 'models_output', 'reasoning']
-                schema.pop('metrics', None)
-            schema['additionalProperties'] = False
+                schema['additionalProperties'] = False
+            # if "type" in schema:
+            #     if schema["type"] == "object":
+            #         schema["additionalProperties"] = False
         return schema
 
     cleaned_schema['schema'] = clean_schema(output_schema)
