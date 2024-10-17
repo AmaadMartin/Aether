@@ -175,7 +175,7 @@ const FunctionCreationPage = () => {
 
   const handleGenerateTests = async () => {
     try {
-      const numTests = 4; // You can allow the user to specify this number
+      const numTests = 2; // You can allow the user to specify this number
       const response = await api.post('/generate_tests', {
         in_schema: inputSchemaState,
         num_tests: numTests,
