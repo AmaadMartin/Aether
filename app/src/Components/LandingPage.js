@@ -53,7 +53,7 @@ const LandingPage = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <img src="/aether_logo_trans.png" alt="Aether Logo" style={{ width: '90px', height: '90px', marginRight: '10px' }} />
                 <Typography variant="h2" component="h1" >
-                    The Aether
+                    Aether
                 </Typography>
             </Box>
         </Box>
