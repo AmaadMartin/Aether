@@ -9,9 +9,11 @@ import {
   AccordionSummary,
   AccordionDetails,
   Grid,
-  Button, // Import Button
+  Button,
+  Snackbar,
+  Alert,
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh'; // Import RefreshIcon
+import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import './EvalTests.css';
 import api from '../Services/api';
@@ -20,7 +22,10 @@ import { AuthContext } from '../Contexts/AuthContext';
 const EvalTests = ({ functionId, versionName }) => {
   const [testsForFunction, setTestsForFunction] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { userEmail } = useContext(AuthContext);
+  const { userEmail, tier } = useContext(AuthContext);
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     if (functionId && versionName) {
@@ -32,7 +37,7 @@ const EvalTests = ({ functionId, versionName }) => {
     setLoading(true);
     try {
       // Fetch the function data from the API
-      const func_response = await api.get(`/users/${userEmail}/function/${functionId}`);
+      const func_response = await api.get(`/users/${encodeURIComponent(userEmail)}/function/${functionId}`);
       const func = func_response.data.function;
 
       if (!func) {
@@ -66,10 +71,19 @@ const EvalTests = ({ functionId, versionName }) => {
       setTestsForFunction(versionNode.evals);
     } catch (error) {
       console.error('Error fetching tests:', error);
+      setSnackbar({ open: true, message: "Error fetching tests.", severity: "error" });
       setTestsForFunction([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchTestsForFunctionAndVersion();
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   if (!functionId) {
@@ -102,12 +116,11 @@ const EvalTests = ({ functionId, versionName }) => {
         <Typography variant="h5" color="error">
           No tests found for this version.
         </Typography>
-        {/* Add the Refresh button here */}
         <Button
           variant="contained"
           color="primary"
           startIcon={<RefreshIcon />}
-          onClick={fetchTestsForFunctionAndVersion}
+          onClick={handleRefresh}
           style={{ marginTop: '16px' }}
         >
           Refresh
@@ -118,12 +131,12 @@ const EvalTests = ({ functionId, versionName }) => {
 
   return (
     <Box className="eval-tests-content">
-      {/* Add the Refresh button at the top */}
+      {/* Refresh Button */}
       <Button
         variant="contained"
         color="primary"
         startIcon={<RefreshIcon />}
-        onClick={fetchTestsForFunctionAndVersion}
+        onClick={handleRefresh}
         style={{ marginBottom: '16px' }}
       >
         Refresh
@@ -154,7 +167,7 @@ const EvalTests = ({ functionId, versionName }) => {
               <Grid item xs={12} md={6}>
                 <Paper className="test-paper">
                   <Typography variant="h6" gutterBottom>
-                    Output
+                    Output {tier == "free" ? "(Upgrade for evaluation on logs)" : ""}
                   </Typography>
                   <pre className="json-display">
                     {JSON.stringify(test.output, null, 2)}
@@ -165,6 +178,18 @@ const EvalTests = ({ functionId, versionName }) => {
           </AccordionDetails>
         </Accordion>
       ))}
+
+      {/* Snackbar for Notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

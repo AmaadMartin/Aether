@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Box, Grid, TextField, Button, Typography } from "@mui/material";
+import { Box, Grid, TextField, Button, Typography, Snackbar, Alert } from "@mui/material";
 import VersionTree from "./VersionTree";
 import EvalTests from "./EvalTests";
 import api from "../Services/api";
@@ -15,30 +15,36 @@ const FunctionVersionPage = () => {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("");
   const [temperature, setTemperature] = useState("");
-  const { userEmail } = useContext(AuthContext);
+  const { userEmail, tier } = useContext(AuthContext);
 
   const [functionData, setFunctionData] = useState(null);
   const [versionTreeKey, setVersionTreeKey] = useState(0); // to force re-render of version tree
 
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
   useEffect(() => {
     fetchFunctionData();
+    console.log(functionData)
   }, []);
 
   useEffect(() => {
     if (selectedVersion) {
       fetchParametersForVersion();
     }
-  }, [selectedVersion]);
+    if (functionData && tier === 'free') {
+      setSelectedVersion(functionData.current_version)
+    }
+  }, [selectedVersion, functionData]);
 
   const fetchFunctionData = async () => {
     try {
-      const response = await api.get(
-        `/users/${userEmail}/function/${functionId}`
-      );
+      const response = await api.get(`/users/${encodeURIComponent(userEmail)}/function/${functionId}`);
       const func = response.data.function;
       setFunctionData(func);
     } catch (error) {
       console.error("Error fetching function data:", error);
+      setSnackbar({ open: true, message: "Error fetching function data.", severity: "error" });
     }
   };
 
@@ -59,10 +65,7 @@ const FunctionVersionPage = () => {
       return null;
     };
 
-    const versionNode = findVersionNode(
-      functionData.version_tree,
-      selectedVersion
-    );
+    const versionNode = findVersionNode(functionData.version_tree, selectedVersion);
 
     if (versionNode) {
       setPrompt(versionNode.prompt || "");
@@ -95,40 +98,54 @@ const FunctionVersionPage = () => {
 
   const handleCommit = async () => {
     try {
-      const data = {
-        current_version_name: selectedVersion,
-        new_prompt: prompt,
-        new_model: model,
-        new_temperature: parseFloat(temperature),
-      };
-      const response = await api.updateParameters(userEmail, functionId, data);
-      // alert("New version created and evaluation added successfully");
+      if (tier === 'free') {
+        // Hobby tier: Modify the existing version directly
+        const data = {
+          current_version_name: selectedVersion,
+          new_prompt: prompt,
+          new_model: model,
+          new_temperature: parseFloat(temperature),
+        };
+        await api.updateParameters(userEmail, functionId, data);
+        setSnackbar({ open: true, message: "Function parameters updated successfully.", severity: "success" });
+        fetchFunctionData();
+      } else {
+        // Pro and Enterprise: Create a new version node as before
+        const data = {
+          current_version_name: selectedVersion,
+          new_prompt: prompt,
+          new_model: model,
+          new_temperature: parseFloat(temperature),
+        };
+        const response = await api.updateParameters(userEmail, functionId, data);
+        setSnackbar({ open: true, message: "New version created and evaluation added successfully.", severity: "success" });
+        // Refresh the version tree
+        setVersionTreeKey(versionTreeKey + 1);
+        fetchFunctionData();
 
-      // Optionally, refresh the data to reflect the new version
-      setVersionTreeKey(versionTreeKey + 1);
-      fetchFunctionData();
-
-      console.log("version", selectedVersion);
-      await api.post(
-        `/users/${userEmail}/function/${functionId}/version/${response.data.version}/evaluate`
-      );
-      // refresh the data to reflect the new version
-      fetchFunctionData();
+        // Call the evaluation API
+        // await api.evaluateFunction(userEmail, functionId, response.data.version);
+      }
     } catch (error) {
       console.error("Error updating parameters:", error);
+      setSnackbar({ open: true, message: "Error updating parameters.", severity: "error" });
     }
   };
 
   const handleDeploy = async () => {
     try {
       await api.deployVersion(userEmail, functionId, selectedVersion);
-      // alert(`Version ${selectedVersion} deployed successfully`);
-
+      setSnackbar({ open: true, message: `Version ${selectedVersion} deployed successfully.`, severity: "success" });
       // Update functionData to reflect the new current_version
       fetchFunctionData();
     } catch (error) {
       console.error("Error deploying version:", error);
+      setSnackbar({ open: true, message: "Error deploying version.", severity: "error" });
     }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -137,21 +154,24 @@ const FunctionVersionPage = () => {
         ← Back to Functions
       </Link>
       <Grid container spacing={2}>
-        {/* Sidebar with Version Tree */}
-        <Grid item xs={12} md={3} className="sidebar">
-          <Box className="sidebar-content">
-            <VersionTree
-              key={versionTreeKey}
-              functionId={functionId}
-              onVersionSelect={handleVersionSelect}
-              currentVersion={
-                functionData ? functionData.current_version : null
-              }
-            />
-          </Box>
-        </Grid>
-        {/* Main Content with Prompt Editor and Evaluation Tests */}
-        <Grid item xs={12} md={9} className="main-content">
+        {/* Conditionally render Sidebar with Version Tree based on tier */}
+        {tier !== 'free' && (
+          <Grid item xs={12} md={3} className="sidebar">
+            <Box className="sidebar-content">
+              <VersionTree
+                key={versionTreeKey}
+                functionId={functionId}
+                onVersionSelect={handleVersionSelect}
+                currentVersion={
+                  functionData ? functionData.current_version : null
+                }
+              />
+            </Box>
+          </Grid>
+        )}
+
+        {/* Main Content */}
+        <Grid item xs={12} md={tier === 'free' ? 12 : 9} className="main-content">
           {selectedVersion ? (
             <Box className="main-content-box">
               <Box
@@ -159,14 +179,16 @@ const FunctionVersionPage = () => {
                 justifyContent="space-between"
                 alignItems="center"
               >
-                <Typography variant="h5">Version: {selectedVersion}</Typography>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={handleDeploy}
-                >
-                  Deploy
-                </Button>
+                <Typography variant="h5">{tier == "free" ? "(For Version Tree Upgrade to Pro)" : ""} Version: {selectedVersion} </Typography>
+                {tier !== 'free' && (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleDeploy}
+                  >
+                    Deploy
+                  </Button>
+                )}
               </Box>
               <Box className="prompt-editor-box">
                 <TextField
@@ -202,7 +224,7 @@ const FunctionVersionPage = () => {
                   onClick={handleCommit}
                   style={{ marginTop: "16px" }}
                 >
-                  Modify and Commit
+                  {tier === 'free' ? "Update" : "Modify and Commit"}
                 </Button>
               </Box>
               <Box className="eval-tests-container">
@@ -221,6 +243,18 @@ const FunctionVersionPage = () => {
           )}
         </Grid>
       </Grid>
+
+      {/* Snackbar for Notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

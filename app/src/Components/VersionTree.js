@@ -9,7 +9,7 @@ import { AuthContext } from "../Contexts/AuthContext";
 const VersionTree = ({ functionId, onVersionSelect, currentVersion }) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [versionTreeData, setVersionTreeData] = useState(null);
-  const { userEmail } = useContext(AuthContext);
+  const { userEmail, tier } = useContext(AuthContext);
 
   useEffect(() => {
     fetchVersionTree();
@@ -17,9 +17,7 @@ const VersionTree = ({ functionId, onVersionSelect, currentVersion }) => {
 
   const fetchVersionTree = async () => {
     try {
-      const func_response = await api.get(
-        `/users/${userEmail}/function/${functionId}`
-      );
+      const func_response = await api.get(`/users/${encodeURIComponent(userEmail)}/function/${functionId}`);
       const func = func_response.data.function;
       if (!func) return;
 

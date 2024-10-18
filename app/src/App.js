@@ -12,6 +12,7 @@ import LoginPage from "./Components/LoginPage";
 import AppErrorBoundary from "./Components/ErrorBoundary";
 import AuthProvider from "./Contexts/AuthContext";
 import PrivateRoute from "./Components/PrivateRoute";
+import UpgradeEnterprisePage from './Components/UpgradeEnterprisePage';
 
 const theme = createTheme({
   // Customize your theme here if needed
@@ -51,6 +52,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <FunctionVersionPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/upgrade-enterprise"
+                  element={
+                    <PrivateRoute>
+                      <UpgradeEnterprisePage />
                     </PrivateRoute>
                   }
                 />

@@ -1,6 +1,7 @@
 // src/Components/FunctionCreationPage.js
 
 import React, { useState, useContext } from "react";
+import { useParams, Link } from "react-router-dom";
 import { AuthContext } from "../Contexts/AuthContext";
 import {
   Grid,
@@ -14,12 +15,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { AddCircleOutline, RemoveCircleOutline } from "@mui/icons-material";
 import SchemaBuilder from "./SchemaBuilder"; // Import the updated SchemaBuilder
 import api from "../Services/api";
 
 const FunctionCreationPage = () => {
+  const { userEmail, tier } = useContext(AuthContext);
+
   // State for Input and Output JSON Schemas
   const [inputSchemaState, setInputSchemaState] = useState({
     type: "object",
@@ -37,7 +42,7 @@ const FunctionCreationPage = () => {
   const [prompt, setPrompt] = useState("");
   const [task, setTask] = useState("");
   const [functionName, setFunctionName] = useState("");
-  const { userEmail } = useContext(AuthContext);
+  const { userEmail: email } = useContext(AuthContext);
 
   // State for Model and Temperature
   const [model, setModel] = useState("gpt-4o-mini");
@@ -48,6 +53,19 @@ const FunctionCreationPage = () => {
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [currentTestInput, setCurrentTestInput] = useState("");
   const [editTestIndex, setEditTestIndex] = useState(null);
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Define maximum tests based on tier
+  const getMaxTests = () => {
+    if (tier === 'free') return 5;
+    if (tier === 'pro') return 50;
+    if (tier === 'enterprise') return Infinity;
+    return 5; // Default to Hobby limits
+  };
+
+  const maxTests = getMaxTests();
 
   // Handlers for Schema Changes
   const handleInputSchemaChange = (updatedSchema) => {
@@ -61,33 +79,37 @@ const FunctionCreationPage = () => {
   const handleCreateFunction = async () => {
     // Validate Function Name
     if (!functionName.trim()) {
-      alert("Function Name is required.");
+      setSnackbar({ open: true, message: "Function Name is required.", severity: "error" });
       return;
     }
 
     // Validate Prompt and Task
     if (!prompt.trim()) {
-      alert("LLM Prompt is required.");
+      setSnackbar({ open: true, message: "LLM Prompt is required.", severity: "error" });
       return;
     }
     if (!task.trim()) {
-      alert("Task Description is required.");
+      setSnackbar({ open: true, message: "Task Description is required.", severity: "error" });
       return;
     }
 
     // Validate Schemas
     if (Object.keys(inputSchemaState.properties).length === 0) {
-      alert("Input Schema must have at least one property.");
+      setSnackbar({ open: true, message: "Input Schema must have at least one property.", severity: "error" });
       return;
     }
     if (Object.keys(outputSchemaState.properties).length === 0) {
-      alert("Output Schema must have at least one property.");
+      setSnackbar({ open: true, message: "Output Schema must have at least one property.", severity: "error" });
       return;
     }
 
-    // Validate Test Set
+    // Validate Test Set based on tier
     if (testSet.length === 0) {
-      alert("At least one test case is required.");
+      setSnackbar({ open: true, message: "At least one test case is required.", severity: "error" });
+      return;
+    }
+    if (testSet.length > maxTests) {
+      setSnackbar({ open: true, message: `Test set exceeds the maximum allowed for tier ${tier}. Max tests: ${maxTests === Infinity ? 'Unlimited' : maxTests}`, severity: "error" });
       return;
     }
 
@@ -102,17 +124,13 @@ const FunctionCreationPage = () => {
       temperature,
     };
     try {
-      const response = await api.post(`/users/${userEmail}/functions`, functionData);
-      alert("Function Created Successfully");
+      const response = await api.post(`/users/${encodeURIComponent(userEmail)}/functions`, functionData);
+      setSnackbar({ open: true, message: "Function Created Successfully", severity: "success" });
 
       // After creating the function, call the evaluation API
-      await api.post(
-        `/users/${userEmail}/function/${response.data.functionId}/version/${response.data.versionId}/evaluate`
-      );
+      await api.evaluateFunction(userEmail, response.data.functionId, response.data.versionId);
 
-      // Redirect or update UI as needed
-      // For example, navigate to the function list page or reset the form
-      // Here, we'll reset the form
+      // Reset the form
       setFunctionName("");
       setTask("");
       setPrompt("");
@@ -129,7 +147,7 @@ const FunctionCreationPage = () => {
       setTestSet([]);
     } catch (error) {
       console.error(error);
-      alert("Error creating function. Please check the console for details.");
+      setSnackbar({ open: true, message: "Error creating function. Please check the console for details.", severity: "error" });
     }
   };
 
@@ -159,11 +177,15 @@ const FunctionCreationPage = () => {
         newTestSet[editTestIndex] = currentTestInput;
         setTestSet(newTestSet);
       } else {
+        if (testSet.length >= maxTests) {
+          setSnackbar({ open: true, message: `Cannot add more than ${maxTests} tests for your tier.`, severity: "error" });
+          return;
+        }
         setTestSet([...testSet, currentTestInput]);
       }
       handleCloseTestDialog();
     } catch (e) {
-      alert("Invalid JSON");
+      setSnackbar({ open: true, message: "Invalid JSON", severity: "error" });
     }
   };
 
@@ -174,6 +196,10 @@ const FunctionCreationPage = () => {
   };
 
   const handleGenerateTests = async () => {
+    if (tier !== 'Enterprise') {
+      setSnackbar({ open: true, message: "Automated test generation is available for Enterprise tier only.", severity: "error" });
+      return;
+    }
     try {
       const numTests = 2; // You can allow the user to specify this number
       const response = await api.post('/generate_tests', {
@@ -181,16 +207,28 @@ const FunctionCreationPage = () => {
         num_tests: numTests,
         task: task,
       });
-      const generatedTests = response.data.tests;
-      setTestSet([...testSet, ...generatedTests.map(test => JSON.stringify(test, null, 2))]);
+      const generatedTests = response.data.tests.map(test => JSON.stringify(test, null, 2));
+      if (testSet.length + generatedTests.length > maxTests) {
+        setSnackbar({ open: true, message: `Adding these tests exceeds your tier's limit of ${maxTests} tests.`, severity: "error" });
+        return;
+      }
+      setTestSet([...testSet, ...generatedTests]);
+      setSnackbar({ open: true, message: "Tests generated successfully.", severity: "success" });
     } catch (error) {
       console.error('Error generating tests:', error);
-      alert("Error generating tests");
+      setSnackbar({ open: true, message: "Error generating tests.", severity: "error" });
     }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
     <Box sx={{ flexGrow: 1, padding: 4 }}>
+      <Link to="/" className="back-link">
+        ← Back to Functions
+      </Link>
       <Typography variant="h4" gutterBottom>
         Create a New Function
       </Typography>
@@ -206,26 +244,30 @@ const FunctionCreationPage = () => {
           />
         </Grid>
 
-        {/* Input Schema Panel */}
-        <Grid item xs={12} md={6}>
-          <SchemaBuilder
-            initialSchema={inputSchemaState}
-            onSchemaChange={handleInputSchemaChange}
-            schemaType="input"
-          />
-        </Grid>
+        {/* Conditionally render Input Schema Panel based on tier */}
+        {tier !== 'Hobby' && (
+          <Grid item xs={12} md={6}>
+            <SchemaBuilder
+              initialSchema={inputSchemaState}
+              onSchemaChange={handleInputSchemaChange}
+              schemaType="input"
+            />
+          </Grid>
+        )}
 
-        {/* Output Schema Panel */}
-        <Grid item xs={12} md={6}>
-          <SchemaBuilder
-            initialSchema={outputSchemaState}
-            onSchemaChange={handleOutputSchemaChange}
-            schemaType="output"
-          />
-        </Grid>
+        {/* Conditionally render Output Schema Panel based on tier */}
+        {tier !== 'Hobby' && (
+          <Grid item xs={12} md={6}>
+            <SchemaBuilder
+              initialSchema={outputSchemaState}
+              onSchemaChange={handleOutputSchemaChange}
+              schemaType="output"
+            />
+          </Grid>
+        )}
 
         {/* Prompt and Task Panel */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={tier === 'Hobby' ? 12 : 6}>
           <Paper sx={{ padding: 3 }}>
             <Typography variant="h6" gutterBottom>
               Prompt and Task
@@ -254,7 +296,7 @@ const FunctionCreationPage = () => {
         </Grid>
 
         {/* Model and Temperature Panel */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={tier === 'Hobby' ? 12 : 6}>
           <Paper sx={{ padding: 3 }}>
             <Typography variant="h6" gutterBottom>
               Model Settings
@@ -290,13 +332,21 @@ const FunctionCreationPage = () => {
                 variant="outlined"
                 startIcon={<AddCircleOutline />}
                 onClick={() => handleOpenTestDialog()}
+                disabled={testSet.length >= maxTests}
               >
                 Add Test
               </Button>
-              <Button variant="outlined" onClick={handleGenerateTests}>
-                Generate Tests
-              </Button>
+              {tier === 'Enterprise' && (
+                <Button variant="outlined" onClick={handleGenerateTests}>
+                  Generate Tests
+                </Button>
+              )}
             </Box>
+            {testSet.length >= maxTests && (
+              <Typography color="textSecondary" sx={{ mb: 2 }}>
+                Maximum number of tests reached for your tier ({tier}). Upgrade to Pro for 50.
+              </Typography>
+            )}
             {testSet.length > 0 ? (
               testSet.map((test, index) => (
                 <Paper key={index} sx={{ padding: 2, marginBottom: 2 }}>
@@ -365,6 +415,18 @@ const FunctionCreationPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for Notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
