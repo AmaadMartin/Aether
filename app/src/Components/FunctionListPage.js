@@ -201,7 +201,7 @@ const FunctionListPage = () => {
       {/* API Key Section - Moved to Bottom Right */}
       <Box
         position="absolute"
-        bottom="20px"
+        bottom="70px"
         right="20px"
         display="flex"
         alignItems="center"

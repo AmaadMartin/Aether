@@ -1,5 +1,3 @@
-// src/Contexts/AuthContext.js
-
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../Services/api'; // Ensure you have an API service set up
 import PropTypes from 'prop-types';
@@ -60,6 +58,22 @@ const AuthProvider = ({ children }) => {
     // Optionally, update the tier in localStorage or make an API call if needed
   };
 
+  // Logout Function
+  const logout = () => {
+    // Clear localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('email');
+    localStorage.removeItem('api_key');
+
+    // Reset context state
+    setUserEmail(null);
+    setApiKey(null);
+    setTier('Free');
+
+    // Optionally, remove API key from headers
+    delete api.defaults.headers.common['X-API-Key'];
+  };
+
   // Context value to be provided to consuming components
   const contextValue = {
     userEmail,
@@ -70,6 +84,7 @@ const AuthProvider = ({ children }) => {
     setTier: updateTier,
     loading,
     error,
+    logout, // Add logout to context
   };
 
   return (
