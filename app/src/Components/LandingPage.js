@@ -49,12 +49,14 @@ const LandingPage = () => {
   return (
     <Container maxWidth="md" sx={{ mt: 8, mb: 8 }}>
       {/* Title Section */}
-      <Box sx={{ textAlign: 'center', mb: 6 }}>
-        <Typography variant="h2" component="h1" gutterBottom>
-          The Aether
-        </Typography>
-      </Box>
-
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <img src="/aether_logo_trans.png" alt="Aether Logo" style={{ width: '90px', height: '90px', marginRight: '10px' }} />
+                <Typography variant="h2" component="h1" >
+                    The Aether
+                </Typography>
+            </Box>
+        </Box>
       {/* Main Content Grid */}
       <Grid container spacing={4} justifyContent="center" alignItems="center">
         {/* Centered Content */}
