@@ -47,14 +47,12 @@ const LandingPage = () => {
   };
 
   return (
+    <Box sx={{ backgroundColor: '#eff8ff', minHeight: '100vh', py: 8 }}>
     <Container maxWidth="md" sx={{ mt: 8, mb: 8 }}>
       {/* Title Section */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <img src="/aether_logo_trans.png" alt="Aether Logo" style={{ width: '90px', height: '90px', marginRight: '10px' }} />
-                <Typography variant="h2" component="h1" >
-                    Aether
-                </Typography>
+                <img src="/The_Aether_Black.png" alt="Aether Logo" style={{ width: 'auto', height: 'auto', marginLeft: '55px' }} />
             </Box>
         </Box>
       {/* Main Content Grid */}
@@ -132,6 +130,7 @@ const LandingPage = () => {
         </Box>
       </Box>
     </Container>
+    </Box>
   );
 };
 
