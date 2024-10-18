@@ -114,7 +114,7 @@ const EvalTests = ({ functionId, versionName }) => {
     return (
       <Box className="eval-tests-message">
         <Typography variant="h5" color="error">
-          No tests found for this version.
+          No tests found for this version yet.
         </Typography>
         <Button
           variant="contained"

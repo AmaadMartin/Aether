@@ -39,7 +39,9 @@ const AuthProvider = ({ children }) => {
           setTier(userData.tier || 'Free');
         } else {
           // If email or API key is missing, handle accordingly
-          setError('User is not authenticated.');
+          // setError('User is not authenticated.');
+          console.log('User is not authenticated.');
+          // initializeAuth();
         }
       } catch (err) {
         console.error('Failed to initialize authentication:', err);
