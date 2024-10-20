@@ -19,7 +19,7 @@
                 "properties": {
                     "test_property": {
                         "type": "string",
-                        "desired_properties": [
+                        "metrics": [
                             "test_desired_property"
                         ]
                     }

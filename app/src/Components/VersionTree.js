@@ -75,10 +75,8 @@ const VersionTree = ({ functionId, onVersionSelect, currentVersion }) => {
     const newNode = {
       name: node.name,
       versionName: node.name,
-      label: `Version ${index}`,
-      attributes: {
-        date: node.date,
-      },
+      // cut node name short for label
+      label: `${node.name.slice(0, 6)}...`,
       children: node.children
         ? node.children.map((child, idx) =>
             convertVersionTree(child, index + idx + 1)

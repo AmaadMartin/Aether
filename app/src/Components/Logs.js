@@ -1,4 +1,4 @@
-// src/Components/EvalTests.js
+// src/Components/Logs.js
 
 import React, { useState, useEffect, useContext } from 'react';
 import {
@@ -15,12 +15,12 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import './EvalTests.css';
+import './Logs.css';
 import api from '../Services/api';
 import { AuthContext } from '../Contexts/AuthContext';
 
-const EvalTests = ({ functionId, versionName }) => {
-  const [testsForFunction, setTestsForFunction] = useState([]);
+const Logs = ({ functionId, versionName }) => {
+  const [callsForFunction, setCallsForFunction] = useState([]);
   const [loading, setLoading] = useState(true);
   const { userEmail, tier } = useContext(AuthContext);
 
@@ -29,57 +29,45 @@ const EvalTests = ({ functionId, versionName }) => {
 
   useEffect(() => {
     if (functionId && versionName) {
-      fetchTestsForFunctionAndVersion();
+      fetchCallsForFunctionAndVersion();
     }
   }, [functionId, versionName]);
 
-  const fetchTestsForFunctionAndVersion = async () => {
+  const fetchCallsForFunctionAndVersion = async () => {
     setLoading(true);
     try {
-      // Fetch the function data from the API
-      const func_response = await api.get(`/users/${encodeURIComponent(userEmail)}/function/${functionId}`);
-      const func = func_response.data.function;
+      // Fetch the function data using the new API method
+      const func_response = await api.getFunctionData(functionId);
+      const func = func_response.data;
 
       if (!func) {
-        setTestsForFunction([]);
+        setCallsForFunction([]);
         setLoading(false);
         return;
       }
 
-      // Navigate to the selected version node in the version tree
-      const findVersionNode = (node, name) => {
-        if (node.name === name) {
-          return node;
-        }
-        if (node.children) {
-          for (let child of node.children) {
-            const result = findVersionNode(child, name);
-            if (result) return result;
-          }
-        }
-        return null;
-      };
+      // Access the version data directly from version_map
+      const versionData = func.version_map[versionName];
 
-      const versionNode = findVersionNode(func.version_tree, versionName);
-
-      if (!versionNode || !versionNode.evals) {
-        setTestsForFunction([]);
+      if (!versionData || !versionData.calls) {
+        setCallsForFunction([]);
         setLoading(false);
         return;
       }
 
-      setTestsForFunction(versionNode.evals);
+      // Reverse the array to show the latest calls first
+      setCallsForFunction(versionData.calls.slice().reverse());
     } catch (error) {
-      console.error('Error fetching tests:', error);
-      setSnackbar({ open: true, message: "Error fetching tests.", severity: "error" });
-      setTestsForFunction([]);
+      console.error('Error fetching calls:', error);
+      setSnackbar({ open: true, message: "Error fetching logs.", severity: "error" });
+      setCallsForFunction([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRefresh = () => {
-    fetchTestsForFunctionAndVersion();
+    fetchCallsForFunctionAndVersion();
   };
 
   const handleSnackbarClose = () => {
@@ -88,7 +76,7 @@ const EvalTests = ({ functionId, versionName }) => {
 
   if (!functionId) {
     return (
-      <Box className="eval-tests-message">
+      <Box className="logs-message">
         <Typography variant="h5">Please select a function.</Typography>
       </Box>
     );
@@ -96,7 +84,7 @@ const EvalTests = ({ functionId, versionName }) => {
 
   if (!versionName) {
     return (
-      <Box className="eval-tests-message">
+      <Box className="logs-message">
         <Typography variant="h5">Please select a version from the tree.</Typography>
       </Box>
     );
@@ -104,17 +92,17 @@ const EvalTests = ({ functionId, versionName }) => {
 
   if (loading) {
     return (
-      <Box className="eval-tests-message">
-        <Typography variant="h5">Loading tests...</Typography>
+      <Box className="logs-message">
+        <Typography variant="h5">Loading logs...</Typography>
       </Box>
     );
   }
 
-  if (testsForFunction.length === 0) {
+  if (callsForFunction.length === 0) {
     return (
-      <Box className="eval-tests-message">
+      <Box className="logs-message">
         <Typography variant="h5" color="error">
-          No tests found for this version yet.
+          No logs found for this version yet.
         </Typography>
         <Button
           variant="contained"
@@ -130,7 +118,7 @@ const EvalTests = ({ functionId, versionName }) => {
   }
 
   return (
-    <Box className="eval-tests-content">
+    <Box className="logs-content">
       {/* Refresh Button */}
       <Button
         variant="contained"
@@ -141,39 +129,80 @@ const EvalTests = ({ functionId, versionName }) => {
       >
         Refresh
       </Button>
-      {testsForFunction.map((test, index) => (
+      {callsForFunction.map((call, index) => (
         <Accordion key={index} defaultExpanded>
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
             aria-controls={`panel${index}-content`}
             id={`panel${index}-header`}
           >
-            <Typography>Test {index + 1}</Typography>
+            <Typography>
+              Call {index + 1} - {new Date(call.timestamp).toLocaleString()} - Status: {call.status}
+            </Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2}>
-              {/* Test Input */}
+              {/* Input */}
               <Grid item xs={12} md={6}>
-                <Paper className="test-paper">
+                <Paper className="call-paper">
                   <Typography variant="h6" gutterBottom>
                     Input
                   </Typography>
                   <pre className="json-display">
-                    {JSON.stringify(test.input, null, 2)}
+                    {JSON.stringify(call.inputs, null, 2)}
                   </pre>
                 </Paper>
               </Grid>
-              {/* Test Output */}
+              {/* Output */}
               <Grid item xs={12} md={6}>
-                <Paper className="test-paper">
+                <Paper className="call-paper">
                   <Typography variant="h6" gutterBottom>
-                    Output {tier == "free" ? "(Upgrade for evaluation on logs)" : ""}
+                    Output
                   </Typography>
                   <pre className="json-display">
-                    {JSON.stringify(test.output, null, 2)}
+                    {JSON.stringify(call.outputs, null, 2)}
                   </pre>
                 </Paper>
               </Grid>
+              {/* Logs */}
+              {call.logs && call.logs.length > 0 && (
+                <Grid item xs={12}>
+                  <Paper className="call-paper">
+                    <Typography variant="h6" gutterBottom>
+                      Logs
+                    </Typography>
+                    <pre className="json-display">
+                      {JSON.stringify(call.logs, null, 2)}
+                    </pre>
+                  </Paper>
+                </Grid>
+              )}
+              {/* Evaluation */}
+              {call.evaluation && Object.keys(call.evaluation).length > 0 ? (
+                <Grid item xs={12}>
+                  <Paper className="call-paper">
+                    <Typography variant="h6" gutterBottom>
+                      Evaluation
+                    </Typography>
+                    <pre className="json-display">
+                      {JSON.stringify(call.evaluation, null, 2)}
+                    </pre>
+                  </Paper>
+                </Grid>
+              ) : (
+                tier === "free" && (
+                  <Grid item xs={12}>
+                    <Paper className="call-paper">
+                      <Typography variant="h6" gutterBottom>
+                        Evaluation
+                      </Typography>
+                      <Typography variant="body1">
+                        Upgrade to Pro to see evaluation metrics.
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                )
+              )}
             </Grid>
           </AccordionDetails>
         </Accordion>
@@ -194,4 +223,4 @@ const EvalTests = ({ functionId, versionName }) => {
   );
 };
 
-export default EvalTests;
+export default Logs;

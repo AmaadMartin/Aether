@@ -1,384 +1,313 @@
 // src/Components/FunctionCreationPage.js
 
-import React, { useState, useContext } from "react";
+import React, { useState, useContext } from 'react';
 import { useParams, Link } from "react-router-dom";
-import { AuthContext } from "../Contexts/AuthContext";
 import {
-  Grid,
-  Paper,
-  Typography,
+  Box,
   TextField,
   Button,
-  Box,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Typography,
+  Paper,
+  Grid,
   Snackbar,
   Alert,
-} from "@mui/material";
-import { AddCircleOutline, RemoveCircleOutline } from "@mui/icons-material";
-import SchemaBuilder from "./SchemaBuilder"; // Import the updated SchemaBuilder
-import api from "../Services/api";
+  IconButton,
+} from '@mui/material';
+import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
+import { AuthContext } from '../Contexts/AuthContext';
+import api from '../Services/api';
+import SchemaBuilder from './SchemaBuilder';
 
 const FunctionCreationPage = () => {
-  const { userEmail, tier } = useContext(AuthContext);
+  const { userEmail } = useContext(AuthContext);
 
-  // State for Input and Output JSON Schemas
-  const [inputSchemaState, setInputSchemaState] = useState({
-    type: "object",
-    properties: {},
-    required: [],
-  });
-
-  const [outputSchemaState, setOutputSchemaState] = useState({
-    type: "object",
-    properties: {},
-    required: [],
-  });
-
-  // State for Prompt, Task, and Function Name
-  const [prompt, setPrompt] = useState("");
-  const [task, setTask] = useState("");
-  const [functionName, setFunctionName] = useState("");
-  const { userEmail: email } = useContext(AuthContext);
-
-  // State for Model and Temperature
-  const [model, setModel] = useState("gpt-4o-mini");
-  const [temperature, setTemperature] = useState(1);
-
-  // State for Test Set
+  const [functionName, setFunctionName] = useState('');
+  const [functionTask, setFunctionTask] = useState('');
+  const [functionType, setFunctionType] = useState('chat_completion');
+  const [prompt, setPrompt] = useState('');
+  const [model, setModel] = useState('gpt-4o-mini');
+  const [temperature, setTemperature] = useState(0.7);
+  const [inputSchema, setInputSchema] = useState(null);
+  const [outputSchema, setOutputSchema] = useState(null);
   const [testSet, setTestSet] = useState([]);
-  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
-  const [currentTestInput, setCurrentTestInput] = useState("");
-  const [editTestIndex, setEditTestIndex] = useState(null);
+  const [metrics, setMetrics] = useState([]);
+  const [parameters, setParameters] = useState([]);
 
-  // Snackbar state
+  // Snackbar state variables
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // Define maximum tests based on tier
-  const getMaxTests = () => {
-    if (tier === 'free') return 5;
-    if (tier === 'pro') return 50;
-    if (tier === 'enterprise') return Infinity;
-    return 5; // Default to Hobby limits
-  };
-
-  const maxTests = getMaxTests();
-
-  // Handlers for Schema Changes
-  const handleInputSchemaChange = (updatedSchema) => {
-    setInputSchemaState(updatedSchema);
-  };
-
-  const handleOutputSchemaChange = (updatedSchema) => {
-    setOutputSchemaState(updatedSchema);
+  const handleFunctionTypeChange = (event) => {
+    setFunctionType(event.target.value);
   };
 
   const handleCreateFunction = async () => {
-    // Validate Function Name
-    if (!functionName.trim()) {
-      setSnackbar({ open: true, message: "Function Name is required.", severity: "error" });
-      return;
-    }
-
-    // Validate Prompt and Task
-    if (!prompt.trim()) {
-      setSnackbar({ open: true, message: "LLM Prompt is required.", severity: "error" });
-      return;
-    }
-    if (!task.trim()) {
-      setSnackbar({ open: true, message: "Task Description is required.", severity: "error" });
-      return;
-    }
-
-    // Validate Schemas
-    if (Object.keys(inputSchemaState.properties).length === 0) {
-      setSnackbar({ open: true, message: "Input Schema must have at least one property.", severity: "error" });
-      return;
-    }
-    if (Object.keys(outputSchemaState.properties).length === 0) {
-      setSnackbar({ open: true, message: "Output Schema must have at least one property.", severity: "error" });
-      return;
-    }
-
-    // Validate Test Set based on tier
-    if (testSet.length === 0) {
-      setSnackbar({ open: true, message: "At least one test case is required.", severity: "error" });
-      return;
-    }
-    if (testSet.length > maxTests) {
-      setSnackbar({ open: true, message: `Test set exceeds the maximum allowed for tier ${tier}. Max tests: ${maxTests === Infinity ? 'Unlimited' : maxTests}`, severity: "error" });
-      return;
-    }
-
+    // Build the function data object
     const functionData = {
       name: functionName,
-      task,
-      prompt,
-      input_schema: inputSchemaState,
-      output_schema: outputSchemaState,
-      test_set: testSet.map((test) => ({ input: JSON.parse(test) })),
-      model,
-      temperature,
+      task: functionTask,
+      type: functionType,
+      test_set: testSet,
     };
-    try {
-      const response = await api.post(`/users/${encodeURIComponent(userEmail)}/functions`, functionData);
-      setSnackbar({ open: true, message: "Function Created Successfully", severity: "success" });
 
-      // After creating the function, call the evaluation API
-      await api.evaluateFunction(userEmail, response.data.functionId, response.data.versionId);
+    console.log("metrics", metrics);
 
-      // Reset the form
-      setFunctionName("");
-      setTask("");
-      setPrompt("");
-      setInputSchemaState({
-        type: "object",
-        properties: {},
-        required: [],
-      });
-      setOutputSchemaState({
-        type: "object",
-        properties: {},
-        required: [],
-      });
-      setTestSet([]);
-    } catch (error) {
-      console.error(error);
-      setSnackbar({ open: true, message: "Error creating function. Please check the console for details.", severity: "error" });
-    }
-  };
-
-  // Handlers for Test Set Dialog
-  const handleOpenTestDialog = (index = null) => {
-    if (index !== null) {
-      setCurrentTestInput(testSet[index]);
-      setEditTestIndex(index);
-    } else {
-      setCurrentTestInput("");
-      setEditTestIndex(null);
-    }
-    setIsTestDialogOpen(true);
-  };
-
-  const handleCloseTestDialog = () => {
-    setIsTestDialogOpen(false);
-    setCurrentTestInput("");
-    setEditTestIndex(null);
-  };
-
-  const handleSaveTest = () => {
-    try {
-      JSON.parse(currentTestInput); // Validate JSON
-      if (editTestIndex !== null) {
-        const newTestSet = [...testSet];
-        newTestSet[editTestIndex] = currentTestInput;
-        setTestSet(newTestSet);
-      } else {
-        if (testSet.length >= maxTests) {
-          setSnackbar({ open: true, message: `Cannot add more than ${maxTests} tests for your tier.`, severity: "error" });
-          return;
+    if (functionType === 'chat_completion') {
+      functionData.prompt = prompt;
+      functionData.model = model;
+      functionData.temperature = parseFloat(temperature);
+      functionData.input_schema = inputSchema;
+      functionData.output_schema = outputSchema;
+      functionData.metrics = metrics;
+    } else if (functionType === 'custom_function') {
+      // For custom functions, include metrics and parameters
+      functionData.metrics = metrics;
+      // Convert parameters array to an object
+      const parametersObject = parameters.reduce((obj, param) => {
+        if (param.name) {
+          obj[param.name] = param.value;
         }
-        setTestSet([...testSet, currentTestInput]);
-      }
-      handleCloseTestDialog();
-    } catch (e) {
-      setSnackbar({ open: true, message: "Invalid JSON", severity: "error" });
+        return obj;
+      }, {});
+      functionData.parameters = parametersObject;
     }
-  };
 
-  const handleDeleteTest = (index) => {
-    const newTestSet = [...testSet];
-    newTestSet.splice(index, 1);
-    setTestSet(newTestSet);
-  };
-
-  const handleGenerateTests = async () => {
-    if (tier !== 'Enterprise') {
-      setSnackbar({ open: true, message: "Automated test generation is available for Enterprise tier only.", severity: "error" });
-      return;
-    }
     try {
-      const numTests = 2; // You can allow the user to specify this number
-      const response = await api.post('/generate_tests', {
-        in_schema: inputSchemaState,
-        num_tests: numTests,
-        task: task,
-      });
-      const generatedTests = response.data.tests.map(test => JSON.stringify(test, null, 2));
-      if (testSet.length + generatedTests.length > maxTests) {
-        setSnackbar({ open: true, message: `Adding these tests exceeds your tier's limit of ${maxTests} tests.`, severity: "error" });
-        return;
-      }
-      setTestSet([...testSet, ...generatedTests]);
-      setSnackbar({ open: true, message: "Tests generated successfully.", severity: "success" });
+      // Make API call to create the function
+      await api.post(`/users/${encodeURIComponent(userEmail)}/functions`, functionData);
+      setSnackbar({ open: true, message: 'Function created successfully!', severity: 'success' });
+      // Reset form fields
+      resetForm();
     } catch (error) {
-      console.error('Error generating tests:', error);
-      setSnackbar({ open: true, message: "Error generating tests.", severity: "error" });
+      console.error('Error creating function:', error);
+      setSnackbar({ open: true, message: 'Failed to create function.', severity: 'error' });
     }
+  };
+
+  const resetForm = () => {
+    setFunctionName('');
+    setFunctionTask('');
+    setFunctionType('chat_completion');
+    setPrompt('');
+    setModel('gpt-4o-mini');
+    setTemperature(0.7);
+    setInputSchema(null);
+    setOutputSchema(null);
+    setTestSet([]);
+    setMetrics([]);
+    setParameters([]);
   };
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // Functions to handle adding/removing metrics
+  const addMetric = () => {
+    setMetrics([...metrics, '']);
+  };
+
+  const removeMetric = (index) => {
+    const newMetrics = metrics.filter((_, idx) => idx !== index);
+    setMetrics(newMetrics);
+  };
+
+  const updateMetric = (index, value) => {
+    const newMetrics = [...metrics];
+    newMetrics[index] = value;
+    setMetrics(newMetrics);
+  };
+
+  // Functions to handle adding/removing parameters
+  const addParameter = () => {
+    setParameters([...parameters, { name: '', value: '' }]);
+  };
+
+  const removeParameter = (index) => {
+    const newParameters = parameters.filter((_, idx) => idx !== index);
+    setParameters(newParameters);
+  };
+
+  const updateParameterName = (index, value) => {
+    const newParameters = [...parameters];
+    newParameters[index].name = value;
+    setParameters(newParameters);
+  };
+
+  const updateParameterValue = (index, value) => {
+    const newParameters = [...parameters];
+    newParameters[index].value = value;
+    setParameters(newParameters);
+  };
+
   return (
-    <Box sx={{ flexGrow: 1, padding: 4 }}>
+    <Box sx={{ padding: 4 }}>
       <Link to="/" className="back-link">
         ← Back to Functions
       </Link>
       <Typography variant="h4" gutterBottom>
-        Create a New Function
+        Create New Function
       </Typography>
-      <Grid container spacing={4}>
-        {/* Input for Function Name */}
-        <Grid item xs={12}>
+
+      {/* Function Name */}
+      <TextField
+        label="Function Name"
+        value={functionName}
+        onChange={(e) => setFunctionName(e.target.value)}
+        fullWidth
+        margin="normal"
+      />
+
+      {/* Function Task */}
+      <TextField
+        label="Function Task"
+        value={functionTask}
+        onChange={(e) => setFunctionTask(e.target.value)}
+        fullWidth
+        margin="normal"
+      />
+
+      {/* Function Type */}
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Function Type</InputLabel>
+        <Select value={functionType} onChange={handleFunctionTypeChange}>
+          <MenuItem value="chat_completion">Chat Completion</MenuItem>
+          <MenuItem value="custom_function">Custom Function</MenuItem>
+        </Select>
+      </FormControl>
+
+      {/* Conditional Fields Based on Function Type */}
+      {functionType === 'chat_completion' && (
+        <>
+          {/* Prompt */}
           <TextField
-            label="Function Name"
-            value={functionName}
-            onChange={(e) => setFunctionName(e.target.value)}
+            label="Prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
             fullWidth
-            required
+            multiline
+            rows={4}
+            margin="normal"
           />
-        </Grid>
 
-        {/* Conditionally render Input Schema Panel based on tier */}
-        {tier !== 'Hobby' && (
-          <Grid item xs={12} md={6}>
-            <SchemaBuilder
-              initialSchema={inputSchemaState}
-              onSchemaChange={handleInputSchemaChange}
-              schemaType="input"
-            />
-          </Grid>
-        )}
+          {/* Model */}
+          <TextField
+            label="Model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
 
-        {/* Conditionally render Output Schema Panel based on tier */}
-        {tier !== 'Hobby' && (
-          <Grid item xs={12} md={6}>
-            <SchemaBuilder
-              initialSchema={outputSchemaState}
-              onSchemaChange={handleOutputSchemaChange}
-              schemaType="output"
-            />
-          </Grid>
-        )}
+          {/* Temperature */}
+          <TextField
+            label="Temperature"
+            type="number"
+            value={temperature}
+            onChange={(e) => setTemperature(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
 
-        {/* Prompt and Task Panel */}
-        <Grid item xs={12} md={tier === 'Hobby' ? 12 : 6}>
-          <Paper sx={{ padding: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Prompt and Task
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <TextField
-                label="LLM Prompt"
-                multiline
-                rows={8}
-                variant="outlined"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Task Description"
-                multiline
-                rows={6}
-                variant="outlined"
-                value={task}
-                onChange={(e) => setTask(e.target.value)}
-                fullWidth
-              />
-            </Box>
-          </Paper>
-        </Grid>
+          {/* Input Schema */}
+          <SchemaBuilder
+            initialSchema={inputSchema}
+            onMetricsChange={setMetrics}
+            onSchemaChange={setInputSchema}
+            schemaType="input"
+          />
 
-        {/* Model and Temperature Panel */}
-        <Grid item xs={12} md={tier === 'Hobby' ? 12 : 6}>
-          <Paper sx={{ padding: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Model Settings
-            </Typography>
-            <TextField
-              label="Model"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              fullWidth
-              helperText="Enter the OpenAI model to use"
-            />
-            <TextField
-              label="Temperature"
-              type="number"
-              value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              fullWidth
-              helperText="Set the temperature for the model (0.0 - 2.0)"
-              inputProps={{ min: 0.0, max: 2.0, step: 0.1 }}
-              style={{ marginTop: '16px' }}
-            />
-          </Paper>
-        </Grid>
+          {/* Output Schema */}
+          <SchemaBuilder
+            initialSchema={outputSchema}
+            onMetricsChange={setMetrics}
+            onSchemaChange={setOutputSchema}
+            schemaType="output"
+          />
+        </>
+      )}
 
-        {/* Test Set Panel */}
-        <Grid item xs={12}>
-          <Paper sx={{ padding: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Test Set
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<AddCircleOutline />}
-                onClick={() => handleOpenTestDialog()}
-                disabled={testSet.length >= maxTests}
+      {functionType === 'custom_function' && (
+        <>
+          {/* Parameters for Custom Function */}
+          <Box sx={{ marginTop: 4 }}>
+            <Typography variant="h6">Parameters</Typography>
+            {parameters.map((param, index) => (
+              <Box
+                key={index}
+                sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}
               >
-                Add Test
-              </Button>
-              {tier === 'Enterprise' && (
-                <Button variant="outlined" onClick={handleGenerateTests}>
-                  Generate Tests
-                </Button>
-              )}
-            </Box>
-            {testSet.length >= maxTests && (
-              <Typography color="textSecondary" sx={{ mb: 2 }}>
-                Maximum number of tests reached for your tier ({tier}). Upgrade to Pro for 50.
-              </Typography>
-            )}
-            {testSet.length > 0 ? (
-              testSet.map((test, index) => (
-                <Paper key={index} sx={{ padding: 2, marginBottom: 2 }}>
-                  <pre style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}>
-                    {test}
-                  </pre>
-                  <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => handleOpenTestDialog(index)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={() => handleDeleteTest(index)}
-                    >
-                      Delete
-                    </Button>
-                  </Box>
-                </Paper>
-              ))
-            ) : (
-              <Typography>No tests added yet.</Typography>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+                <TextField
+                  label="Parameter Name"
+                  value={param.name}
+                  onChange={(e) => updateParameterName(index, e.target.value)}
+                  sx={{ marginRight: 1, flex: 1 }}
+                />
+                <TextField
+                  label="Parameter Value"
+                  value={param.value}
+                  onChange={(e) => updateParameterValue(index, e.target.value)}
+                  sx={{ marginRight: 1, flex: 1 }}
+                />
+                <IconButton
+                  color="error"
+                  onClick={() => removeParameter(index)}
+                  sx={{ marginLeft: 1 }}
+                >
+                  <RemoveIcon />
+                </IconButton>
+              </Box>
+            ))}
+            <Button
+              variant="outlined"
+              onClick={addParameter}
+              startIcon={<AddIcon />}
+              sx={{ marginTop: 1 }}
+            >
+              Add Parameter
+            </Button>
+          </Box>
+
+          {/* Metrics for Custom Function */}
+          <Box sx={{ marginTop: 4 }}>
+            <Typography variant="h6">Output Metrics</Typography>
+            {metrics.map((metric, index) => (
+              <Box
+                key={index}
+                sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}
+              >
+                <TextField
+                  label={`Metric ${index + 1}`}
+                  value={metric}
+                  onChange={(e) => updateMetric(index, e.target.value)}
+                  fullWidth
+                />
+                <IconButton
+                  color="error"
+                  onClick={() => removeMetric(index)}
+                  sx={{ marginLeft: 1 }}
+                >
+                  <RemoveIcon />
+                </IconButton>
+              </Box>
+            ))}
+            <Button
+              variant="outlined"
+              onClick={addMetric}
+              startIcon={<AddIcon />}
+              sx={{ marginTop: 1 }}
+            >
+              Add Metric
+            </Button>
+          </Box>
+        </>
+      )}
 
       {/* Create Function Button */}
-      <Box sx={{ marginTop: 4, textAlign: "center" }}>
+      <Box sx={{ marginTop: 4, textAlign: 'center' }}>
         <Button
           variant="contained"
           color="success"
@@ -389,41 +318,18 @@ const FunctionCreationPage = () => {
         </Button>
       </Box>
 
-      {/* Test Input Dialog */}
-      <Dialog
-        open={isTestDialogOpen}
-        onClose={handleCloseTestDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>{editTestIndex !== null ? "Edit Test" : "Add Test"}</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Test Input (JSON)"
-            multiline
-            rows={10}
-            variant="outlined"
-            value={currentTestInput}
-            onChange={(e) => setCurrentTestInput(e.target.value)}
-            fullWidth
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseTestDialog}>Cancel</Button>
-          <Button onClick={handleSaveTest} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* Snackbar for Notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

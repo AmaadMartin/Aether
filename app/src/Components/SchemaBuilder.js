@@ -19,13 +19,12 @@ import {
   Add as AddIcon,
   Remove as RemoveIcon,
 } from '@mui/icons-material';
-import { v4 as uuidv4 } from 'uuid';
 import './SchemaBuilder.css';
 
 const propertyTypes = ['string', 'number', 'boolean', 'object', 'array'];
 
-const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
-  const { control, register, handleSubmit, watch, setValue } = useForm({
+const SchemaBuilder = ({ initialSchema, onMetricsChange, onSchemaChange, schemaType }) => {
+  const { control, register, watch, setValue } = useForm({
     defaultValues: initialSchema || {
       properties: [],
     },
@@ -78,10 +77,6 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
             }
           }
 
-          if (schemaType === 'output' && prop.desiredProperties && prop.desiredProperties.length > 0) {
-            schema.properties[prop.name].desiredProperties = prop.desiredProperties;
-          }
-
           // Add the property name to the required array
           schema.required.push(prop.name);
         }
@@ -95,6 +90,11 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
         schema.additionalProperties = false;
       }
 
+      // Add desired properties at the root level for output schema
+      if (schemaType === 'output' && value.metrics && value.metrics.length > 0) {
+        schema.metrics = value.metrics;
+      }
+      onMetricsChange(value.metrics);
       onSchemaChange(schema);
     });
 
@@ -137,10 +137,6 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
           }
         }
 
-        if (schemaType === 'output' && prop.desiredProperties && prop.desiredProperties.length > 0) {
-          transformed.properties[prop.name].desiredProperties = prop.desiredProperties;
-        }
-
         transformed.required.push(prop.name);
       }
     });
@@ -152,11 +148,9 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
   };
 
   const addProperty = () => {
-    const newPropertyName = "";
     append({
-      name: newPropertyName,
+      name: '',
       type: 'string',
-      desiredProperties: schemaType === 'output' ? [''] : undefined,
       properties: [],
       required: [],
       itemsType: 'string',
@@ -165,63 +159,52 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
     });
   };
 
-  const addDesiredProperty = (index) => {
-    const currentDesired = watchFields[index].desiredProperties || [];
+  const addMetric = () => {
+    const currentDesired = watch('metrics') || [];
     const newDesired = [...currentDesired, ''];
-    setValue(`properties.${index}.desiredProperties`, newDesired);
+    setValue('metrics', newDesired);
   };
 
-  const removeDesiredProperty = (propertyIndex, desiredIndex) => {
-    const currentDesired = watchFields[propertyIndex].desiredProperties || [];
+  const removeMetric = (desiredIndex) => {
+    const currentDesired = watch('metrics') || [];
     const newDesired = currentDesired.filter((_, idx) => idx !== desiredIndex);
-    setValue(`properties.${propertyIndex}.desiredProperties`, newDesired);
+    setValue('metrics', newDesired);
   };
 
   const addNestedProperty = (parentIndex) => {
     setValue(`properties.${parentIndex}.properties`, [
       ...(watchFields[parentIndex].properties || []),
-      { name: "", type: 'string' },
+      { name: '', type: 'string' },
     ]);
     setValue(`properties.${parentIndex}.required`, [
       ...(watchFields[parentIndex].required || []),
-      "",
+      '',
     ]);
   };
 
   const removeNestedProperty = (parentIndex, nestedIndex) => {
-    const propertyName = watchFields[parentIndex].properties[nestedIndex].name;
     const updatedProperties = watchFields[parentIndex].properties.filter(
       (_, idx) => idx !== nestedIndex
     );
-    const updatedRequired = watchFields[parentIndex].required.filter(
-      (req) => req !== propertyName
-    );
     setValue(`properties.${parentIndex}.properties`, updatedProperties);
-    setValue(`properties.${parentIndex}.required`, updatedRequired);
   };
 
   const addArrayNestedProperty = (parentIndex) => {
-    const newName = "";
     setValue(`properties.${parentIndex}.itemsProperties`, [
       ...(watchFields[parentIndex].itemsProperties || []),
-      { name: newName, type: 'string' },
+      { name: '', type: 'string' },
     ]);
     setValue(`properties.${parentIndex}.itemsRequired`, [
       ...(watchFields[parentIndex].itemsRequired || []),
-      newName,
+      '',
     ]);
   };
 
   const removeArrayNestedProperty = (parentIndex, nestedIndex) => {
-    const propertyName = watchFields[parentIndex].itemsProperties[nestedIndex].name;
     const updatedProperties = watchFields[parentIndex].itemsProperties.filter(
       (_, idx) => idx !== nestedIndex
     );
-    const updatedRequired = watchFields[parentIndex].itemsRequired.filter(
-      (req) => req !== propertyName
-    );
     setValue(`properties.${parentIndex}.itemsProperties`, updatedProperties);
-    setValue(`properties.${parentIndex}.itemsRequired`, updatedRequired);
   };
 
   return (
@@ -237,12 +220,21 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
         <Typography variant="h6">
           {schemaType === 'input' ? 'Input Schema Builder' : 'Output Schema Builder'}
         </Typography>
-        <Button variant="contained" color="primary" onClick={addProperty} startIcon={<AddIcon />}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={addProperty}
+          startIcon={<AddIcon />}
+        >
           Add Property
         </Button>
       </Box>
+
       {fields.map((field, index) => (
-        <Box key={field.id} sx={{ border: '1px solid #ccc', padding: 2, marginBottom: 2, borderRadius: 1 }}>
+        <Box
+          key={field.id}
+          sx={{ border: '1px solid #ccc', padding: 2, marginBottom: 2, borderRadius: 1 }}
+        >
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={4}>
               <TextField
@@ -277,56 +269,21 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
               </IconButton>
             </Grid>
 
-            {/* Desired Properties for Output Schema */}
-            {schemaType === 'output' && (
-              <Grid item xs={12}>
-                <Typography variant="subtitle1">Metrics</Typography>
-                {watchFields[index].desiredProperties && watchFields[index].desiredProperties.map((dp, dpIndex) => (
-                  <Box key={dpIndex} sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}>
-                    <TextField
-                      label={`Metric ${dpIndex + 1}`}
-                      {...register(`properties.${index}.desiredProperties.${dpIndex}`)}
-                      defaultValue={dp}
-                      fullWidth
-                    />
-                    <IconButton
-                      color="error"
-                      onClick={() => removeDesiredProperty(index, dpIndex)}
-                      sx={{ marginLeft: 1 }}
-                    >
-                      <RemoveIcon />
-                    </IconButton>
-                  </Box>
-                ))}
-                <Button
-                  variant="outlined"
-                  onClick={() => addDesiredProperty(index)}
-                  startIcon={<AddIcon />}
-                >
-                  Add Metric
-                </Button>
-              </Grid>
-            )}
-
             {/* Nested Properties for Object Type */}
             {watchFields[index].type === 'object' && (
               <Grid item xs={12}>
                 <Typography variant="subtitle1">Nested Properties</Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => addNestedProperty(index)}
-                  startIcon={<AddIcon />}
-                  sx={{ marginBottom: 1 }}
-                >
-                  Add Nested Property
-                </Button>
                 {watchFields[index].properties &&
                   watchFields[index].properties.map((nestedProp, nestedIndex) => (
-                    <Box key={nestedIndex} sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}>
+                    <Box
+                      key={nestedIndex}
+                      sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}
+                    >
                       <TextField
                         label={`Nested Property ${nestedIndex + 1}`}
-                        {...register(`properties.${index}.properties.${nestedIndex}.name`, { required: true })}
+                        {...register(`properties.${index}.properties.${nestedIndex}.name`, {
+                          required: true,
+                        })}
                         defaultValue={nestedProp.name}
                         sx={{ marginRight: 1 }}
                       />
@@ -347,11 +304,23 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
                           )}
                         />
                       </FormControl>
-                      <IconButton color="error" onClick={() => removeNestedProperty(index, nestedIndex)}>
+                      <IconButton
+                        color="error"
+                        onClick={() => removeNestedProperty(index, nestedIndex)}
+                      >
                         <RemoveIcon />
                       </IconButton>
                     </Box>
                   ))}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => addNestedProperty(index)}
+                  startIcon={<AddIcon />}
+                  sx={{ marginBottom: 1 }}
+                >
+                  Add Nested Property
+                </Button>
               </Grid>
             )}
 
@@ -379,22 +348,21 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
 
                 {watchFields[index].itemsType === 'object' && (
                   <>
-                    <Typography variant="subtitle1">Nested Properties in Array Items</Typography>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => addArrayNestedProperty(index)}
-                      startIcon={<AddIcon />}
-                      sx={{ marginBottom: 1 }}
-                    >
-                      Add Nested Property
-                    </Button>
+                    <Typography variant="subtitle1">
+                      Nested Properties in Array Items
+                    </Typography>
                     {watchFields[index].itemsProperties &&
                       watchFields[index].itemsProperties.map((nestedProp, nestedIndex) => (
-                        <Box key={nestedIndex} sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}>
+                        <Box
+                          key={nestedIndex}
+                          sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}
+                        >
                           <TextField
                             label={`Nested Property ${nestedIndex + 1}`}
-                            {...register(`properties.${index}.itemsProperties.${nestedIndex}.name`, { required: true })}
+                            {...register(
+                              `properties.${index}.itemsProperties.${nestedIndex}.name`,
+                              { required: true }
+                            )}
                             defaultValue={nestedProp.name}
                             sx={{ marginRight: 1 }}
                           />
@@ -415,11 +383,23 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
                               )}
                             />
                           </FormControl>
-                          <IconButton color="error" onClick={() => removeArrayNestedProperty(index, nestedIndex)}>
+                          <IconButton
+                            color="error"
+                            onClick={() => removeArrayNestedProperty(index, nestedIndex)}
+                          >
                             <RemoveIcon />
                           </IconButton>
                         </Box>
                       ))}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => addArrayNestedProperty(index)}
+                      startIcon={<AddIcon />}
+                      sx={{ marginBottom: 1 }}
+                    >
+                      Add Nested Property
+                    </Button>
                   </>
                 )}
               </Grid>
@@ -427,6 +407,42 @@ const SchemaBuilder = ({ initialSchema, onSchemaChange, schemaType }) => {
           </Grid>
         </Box>
       ))}
+
+      {/* Desired Properties for Output Schema (at Root Level) */}
+      {schemaType === 'output' && (
+        <Box sx={{ marginTop: 4 }}>
+          <Typography variant="h6">Metrics</Typography>
+          {watch('metrics') &&
+            watch('metrics').map((dp, dpIndex) => (
+              <Box
+                key={dpIndex}
+                sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}
+              >
+                <TextField
+                  label={`Metric ${dpIndex + 1}`}
+                  {...register(`metrics.${dpIndex}`)}
+                  defaultValue={dp}
+                  fullWidth
+                />
+                <IconButton
+                  color="error"
+                  onClick={() => removeMetric(dpIndex)}
+                  sx={{ marginLeft: 1 }}
+                >
+                  <RemoveIcon />
+                </IconButton>
+              </Box>
+            ))}
+          <Button
+            variant="outlined"
+            onClick={addMetric}
+            startIcon={<AddIcon />}
+            sx={{ marginTop: 1 }}
+          >
+            Add Metric
+          </Button>
+        </Box>
+      )}
     </Paper>
   );
 };
