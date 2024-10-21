@@ -1,7 +1,7 @@
 // src/Components/FunctionVersionPage.js
 
-import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -10,19 +10,17 @@ import {
   Typography,
   Snackbar,
   Alert,
-} from "@mui/material";
-import VersionTree from "./VersionTree";
-import Logs from "./Logs";
-import api from "../Services/api";
-import { AuthContext } from "../Contexts/AuthContext";
-import "./FunctionVersionPage.css";
+} from '@mui/material';
+import VersionTree from './VersionTree';
+import Logs from './Logs';
+import api from '../Services/api';
+import { AuthContext } from '../Contexts/AuthContext';
+import PromptEditor from './PromptEditor';
+import './FunctionVersionPage.css';
 
 const FunctionVersionPage = () => {
   const { functionId } = useParams();
   const [selectedVersion, setSelectedVersion] = useState(null);
-  const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState("");
-  const [temperature, setTemperature] = useState("");
   const [parameters, setParameters] = useState({});
   const { userEmail, tier } = useContext(AuthContext);
 
@@ -32,8 +30,8 @@ const FunctionVersionPage = () => {
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
-    message: "",
-    severity: "success",
+    message: '',
+    severity: 'success',
   });
 
   useEffect(() => {
@@ -44,7 +42,7 @@ const FunctionVersionPage = () => {
     if (selectedVersion) {
       fetchParametersForVersion();
     }
-    if (functionData && tier === "free") {
+    if (functionData && tier === 'free') {
       setSelectedVersion(functionData.current_version);
     }
   }, [selectedVersion, functionData]);
@@ -55,11 +53,11 @@ const FunctionVersionPage = () => {
       const func = response.data;
       setFunctionData(func);
     } catch (error) {
-      console.error("Error fetching function data:", error);
+      console.error('Error fetching function data:', error);
       setSnackbar({
         open: true,
-        message: "Error fetching function data.",
-        severity: "error",
+        message: 'Error fetching function data.',
+        severity: 'error',
       });
     }
   };
@@ -68,40 +66,16 @@ const FunctionVersionPage = () => {
     if (!functionData) return;
 
     const versionData = functionData.version_map[selectedVersion];
-    // console.log("functionData", functionData);
 
     if (versionData) {
-      if (functionData.type === "chat_completion") {
-        setPrompt(versionData.parameters.prompt || "");
-        setModel(versionData.parameters.model || "");
-        setTemperature(
-          versionData.parameters.temperature !== undefined ? versionData.parameters.temperature : ""
-        );
-      } else if (functionData.type === "custom_function") {
-        setParameters(versionData.parameters || {});
-      }
+      setParameters(versionData.parameters || {});
     } else {
-      setPrompt("");
-      setModel("");
-      setTemperature("");
       setParameters({});
     }
   };
 
   const handleVersionSelect = async (versionName) => {
     setSelectedVersion(versionName);
-  };
-
-  const handlePromptChange = (event) => {
-    setPrompt(event.target.value);
-  };
-
-  const handleModelChange = (event) => {
-    setModel(event.target.value);
-  };
-
-  const handleTemperatureChange = (event) => {
-    setTemperature(event.target.value);
   };
 
   const handleParameterChange = (key, value) => {
@@ -112,34 +86,24 @@ const FunctionVersionPage = () => {
     try {
       const data = {
         version: selectedVersion,
+        new_parameters: parameters,
       };
-      console.log("version", selectedVersion);
-
-      // console.log("functionData", functionData);
-
-      if (functionData.type === "chat_completion") {
-        data.new_prompt = prompt;
-        data.new_model = model;
-        data.new_temperature = parseFloat(temperature);
-      } else if (functionData.type === "custom_function") {
-        data.new_parameters = parameters;
-      }
 
       await api.updateParameters(userEmail, functionId, data);
       setSnackbar({
         open: true,
-        message: "Parameters updated successfully.",
-        severity: "success",
+        message: 'Parameters updated successfully.',
+        severity: 'success',
       });
       // Refresh the version tree
       setVersionTreeKey(versionTreeKey + 1);
       fetchFunctionData();
     } catch (error) {
-      console.error("Error updating parameters:", error);
+      console.error('Error updating parameters:', error);
       setSnackbar({
         open: true,
-        message: "Error updating parameters.",
-        severity: "error",
+        message: 'Error updating parameters.',
+        severity: 'error',
       });
     }
   };
@@ -150,16 +114,16 @@ const FunctionVersionPage = () => {
       setSnackbar({
         open: true,
         message: `Version ${selectedVersion} deployed successfully.`,
-        severity: "success",
+        severity: 'success',
       });
       // Update functionData to reflect the new current_version
       fetchFunctionData();
     } catch (error) {
-      console.error("Error deploying version:", error);
+      console.error('Error deploying version:', error);
       setSnackbar({
         open: true,
-        message: "Error deploying version.",
-        severity: "error",
+        message: 'Error deploying version.',
+        severity: 'error',
       });
     }
   };
@@ -175,16 +139,14 @@ const FunctionVersionPage = () => {
       </Link>
       <Grid container spacing={2}>
         {/* Conditionally render Sidebar with Version Tree based on tier */}
-        {tier !== "free" && (
+        {tier !== 'free' && (
           <Grid item xs={12} md={3} className="sidebar">
             <Box className="sidebar-content">
               <VersionTree
                 key={versionTreeKey}
                 functionId={functionId}
                 onVersionSelect={handleVersionSelect}
-                currentVersion={
-                  functionData ? functionData.current_version : null
-                }
+                currentVersion={functionData ? functionData.current_version : null}
               />
             </Box>
           </Grid>
@@ -194,7 +156,7 @@ const FunctionVersionPage = () => {
         <Grid
           item
           xs={12}
-          md={tier === "free" ? 12 : 9}
+          md={tier === 'free' ? 12 : 9}
           className="main-content"
         >
           {selectedVersion && functionData ? (
@@ -205,10 +167,10 @@ const FunctionVersionPage = () => {
                 alignItems="center"
               >
                 <Typography variant="h5">
-                  {tier === "free" ? "(For Version Tree Upgrade to Pro)" : ""}{" "}
-                  Version: {selectedVersion}{" "}
+                  {tier === 'free' ? '(For Version Tree Upgrade to Pro)' : ''}{' '}
+                  Version: {selectedVersion}{' '}
                 </Typography>
-                {tier !== "free" && (
+                {tier !== 'free' && (
                   <Button
                     variant="contained"
                     color="secondary"
@@ -219,60 +181,36 @@ const FunctionVersionPage = () => {
                 )}
               </Box>
               <Box className="prompt-editor-box">
-                {functionData.type === "chat_completion" ? (
-                  <>
-                    <TextField
-                      label="Prompt"
-                      multiline
-                      rows={6}
-                      variant="outlined"
-                      value={prompt}
-                      onChange={handlePromptChange}
-                      fullWidth
+                {Object.keys(parameters).map((key) => {
+                  const isPromptField = /prompt/i.test(key);
+                  return isPromptField ? (
+                    <PromptEditor
+                      key={key}
+                      label={key}
+                      value={parameters[key]}
+                      onChange={(value) => handleParameterChange(key, value)}
                     />
+                  ) : (
                     <TextField
-                      label="Model"
+                      key={key}
+                      label={key}
                       variant="outlined"
-                      value={model}
-                      onChange={handleModelChange}
+                      value={parameters[key]}
+                      onChange={(e) =>
+                        handleParameterChange(key, e.target.value)
+                      }
                       fullWidth
-                      style={{ marginTop: "16px" }}
+                      style={{ marginTop: '16px' }}
                     />
-                    <TextField
-                      label="Temperature"
-                      type="number"
-                      variant="outlined"
-                      value={temperature}
-                      onChange={handleTemperatureChange}
-                      fullWidth
-                      style={{ marginTop: "16px" }}
-                      inputProps={{ min: 0.0, max: 2.0, step: 0.1 }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    {Object.keys(parameters).map((key) => (
-                      <TextField
-                        key={key}
-                        label={key}
-                        variant="outlined"
-                        value={parameters[key]}
-                        onChange={(e) =>
-                          handleParameterChange(key, e.target.value)
-                        }
-                        fullWidth
-                        style={{ marginTop: "16px" }}
-                      />
-                    ))}
-                  </>
-                )}
+                  );
+                })}
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={handleCommit}
-                  style={{ marginTop: "16px" }}
+                  style={{ marginTop: '16px' }}
                 >
-                  {tier === "free" ? "Update" : "Modify and Commit"}
+                  {tier === 'free' ? 'Update' : 'Modify and Commit'}
                 </Button>
               </Box>
               <Box className="logs-container">
@@ -294,12 +232,12 @@ const FunctionVersionPage = () => {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>

@@ -58,16 +58,17 @@ class AetherFunction:
 
         call.eval()
 
+        call.status("complete")
         return output
 
     def get_version(self):
         return self.version
 
-    def init_call(self, version=None):
-        if version is None:
-            version = self.version
+    def init_call(self):
+        if self.current:
+            self.api.getCurrentVersion(self)
 
-        call = AetherCall(self, version, self.api)
+        call = AetherCall(self, self.version, self.api)
         call.init()
         return call
 

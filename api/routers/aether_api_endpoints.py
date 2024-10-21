@@ -1,7 +1,7 @@
 # api/routers/aether_api_endpoints.py
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Body
-from utils import verify_token, get_user, save_user, save_function, find_user_by_api_key, find_function_by_api_and_function_key
+from utils import verify_token, get_user, save_user, save_function, find_user_by_api_key, find_function_by_api_and_function_key, is_version_tree_enabled
 from evaluation import evaluate_output
 from models import ParameterUpdateRequest, CreateCallRequest, UpdateCallRequest, EvaluateCallInput
 from typing import Any
@@ -203,6 +203,11 @@ def evaluate_call(
     if not api_key:
         raise HTTPException(status_code=401, detail="API key required")
     
+    # get tier and if version tree is enabled
+    user_data = find_user_by_api_key(api_key)
+    tier = user_data.get("tier", "free")
+    if not is_version_tree_enabled(tier):
+        return {"evaluation": {}, "message": "Evaluation not allowed for this tier"}
     function = find_function_by_api_and_function_key(api_key, function_key)
 
     # Get the version data

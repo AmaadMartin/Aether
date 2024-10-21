@@ -50,6 +50,7 @@ class AetherCall:
         self.update()
 
     def eval(self):
+        self._status = "evaluating"
         thread = threading.Thread(target=self._run_async_eval)
         thread.start()
         return

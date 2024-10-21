@@ -14,10 +14,10 @@ to install the required packages.
 ## Example Usage
 
 ```python
-from Aether import AetherClient
+from Aether import Aether
 
 # Initialize the Aether client
-client = AetherClient(
+client = Aether(
     api_key=AETHER_API_KEY, 
     openai_api_key=OPENAI_API_KEY
 )

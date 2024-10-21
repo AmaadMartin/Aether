@@ -1,0 +1,22 @@
+/* src/Components/PromptEditor.css */
+
+.prompt-editor-container {
+    margin-bottom: 16px;
+  }
+  
+  .prompt-editor-expanded {
+    margin-top: 16px;
+  }
+  
+  .markdown-preview {
+    border: 1px solid #ccc;
+    padding: 16px;
+    border-radius: 4px;
+    overflow-y: auto;
+    max-height: 400px;
+  }
+  
+  .markdown-content {
+    white-space: pre-wrap;
+  }
+  

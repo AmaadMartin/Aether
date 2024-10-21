@@ -2,7 +2,7 @@
 from _Aether.AetherAPI import AetherAPI
 from _Aether.AetherFunction import AetherFunction
 
-class AetherClient:
+class Aether:
     def __init__(self, api_key):
         self.api_key = api_key
         self.api = AetherAPI(api_key)
