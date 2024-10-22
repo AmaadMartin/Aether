@@ -8,8 +8,8 @@ import {
   Typography,
   TextField,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import ReactMarkdown from 'react-markdown';
 import './PromptEditor.css';
 
@@ -29,7 +29,7 @@ const PromptEditor = ({ label, value, onChange }) => {
       <Box display="flex" alignItems="center" justifyContent="space-between">
         <Typography variant="h6">{label}</Typography>
         <IconButton onClick={handleToggleExpand}>
-          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          {expanded ? <FullscreenExitIcon /> : <FullscreenIcon />}
         </IconButton>
       </Box>
       {expanded ? (

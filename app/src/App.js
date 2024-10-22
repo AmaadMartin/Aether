@@ -1,3 +1,5 @@
+// src/App.js
+
 import React, { useContext } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -6,7 +8,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import FunctionListPage from "./Components/FunctionListPage";
 import FunctionCreationPage from "./Components/FunctionCreationPage";
 import FunctionVersionPage from "./Components/FunctionVersionPage";
-import LandingPage from "./Components/LandingPage"; // Import LandingPage
+import LandingPage from "./Components/LandingPage";
 import AppErrorBoundary from "./Components/ErrorBoundary";
 import AuthProvider, { AuthContext } from "./Contexts/AuthContext";
 import PrivateRoute from "./Components/PrivateRoute";
@@ -28,11 +30,9 @@ function App() {
           <CssBaseline />
           <AppErrorBoundary>
             <Router>
+              <Navbar />
               <Routes>
-                {/* Landing Page Route */}
                 <Route path="/" element={<LandingWrapper />} />
-
-                {/* Login Route */}
                 <Route path="/login" element={<LandingWrapper />} />
 
                 {/* Protected Routes */}
@@ -40,8 +40,7 @@ function App() {
                   path="/functions"
                   element={
                     <PrivateRoute>
-                      <Navbar /> {/* Add Navbar here */}
-                      <FunctionListPage />
+                      <FunctionListPage isFlow={false} />
                     </PrivateRoute>
                   }
                 />
@@ -49,8 +48,7 @@ function App() {
                   path="/function-creation"
                   element={
                     <PrivateRoute>
-                      <Navbar /> {/* Add Navbar here */}
-                      <FunctionCreationPage />
+                      <FunctionCreationPage isFlow={false} />
                     </PrivateRoute>
                   }
                 />
@@ -58,21 +56,45 @@ function App() {
                   path="/function/:functionId"
                   element={
                     <PrivateRoute>
-                      <Navbar /> {/* Add Navbar here */}
-                      <FunctionVersionPage />
+                      <FunctionVersionPage isFlow={false} />
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* Routes for Flows */}
+                <Route
+                  path="/flows"
+                  element={
+                    <PrivateRoute>
+                      <FunctionListPage isFlow={true} />
                     </PrivateRoute>
                   }
                 />
                 <Route
+                  path="/flow-creation"
+                  element={
+                    <PrivateRoute>
+                      <FunctionCreationPage isFlow={true} />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/flow/:functionId"
+                  element={
+                    <PrivateRoute>
+                      <FunctionVersionPage isFlow={true} />
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
                   path="/upgrade-enterprise"
                   element={
                     <PrivateRoute>
-                      <Navbar /> {/* Add Navbar here */}
                       <UpgradeEnterprisePage />
                     </PrivateRoute>
                   }
                 />
-                
                 {/* Redirect any unknown routes to landing page */}
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
@@ -84,7 +106,6 @@ function App() {
   );
 }
 
-// Wrapper component to handle redirection based on authentication status
 const LandingWrapper = () => {
   const { userEmail, loading } = useContext(AuthContext);
 

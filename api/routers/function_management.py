@@ -51,7 +51,7 @@ def create_function(
 
     versionId = uuid.uuid4().hex
 
-    if function.type == "custom_function":
+    if function.type == "flow":
         # Custom function logic
         version_tree = {"name": versionId, "children": []}
         version_map = {
@@ -100,7 +100,7 @@ def create_function(
 
     # Evaluate the new version if tests exist
     tests = new_function.get("test_set", [])
-    if tests and function.type != "custom_function":
+    if tests and function.type != "flow":
         eval_data = evaluate_function(new_function, versionId, tests, user_data["api_key"])
         new_function["version_map"][versionId]["calls"].extend(eval_data)
         # Update DynamoDB with evaluations
@@ -181,7 +181,7 @@ def update_parameters(
         
 
         # Create new version data
-        if function["type"] == "custom_function":
+        if function["type"] == "flow":
             version_data = {
                 "parameters": update.new_parameters or {},
                 "calls": [],
@@ -191,7 +191,7 @@ def update_parameters(
             version_data = {
                 "prompt": update.new_prompt,
                 "model": update.new_model,
-                "temperature": Decimal(str(update.new_temperature)),
+                "temperature": update.new_temperature,
                 "calls": [],
                 "date": datetime.now().isoformat(),
             }
@@ -201,7 +201,7 @@ def update_parameters(
 
         # Evaluate the new version if tests exist
         tests = function.get("test_set", [])
-        if tests and function["type"] != "custom_function":
+        if tests and function["type"] != "flow":
             eval_data = evaluate_function(
                 function, versionId, tests, user_data["api_key"]
             )
@@ -220,14 +220,12 @@ def update_parameters(
         if not version_data:
             raise HTTPException(status_code=404, detail="Version not found")
 
-        if function["type"] == "custom_function":
+        if function["type"] == "flow":
             version_data["parameters"] = update.new_parameters or version_data.get("parameters", {})
         else:
             version_data["prompt"] = update.new_prompt or version_data.get("prompt")
             version_data["model"] = update.new_model or version_data.get("model")
-            version_data["temperature"] = Decimal(
-                str(update.new_temperature)
-            ) if update.new_temperature else version_data.get("temperature")
+            version_data["temperature"] = update.new_temperature if update.new_temperature else version_data.get("temperature")
 
             # Evaluate the updated version if tests exist
             tests = function.get("test_set", [])

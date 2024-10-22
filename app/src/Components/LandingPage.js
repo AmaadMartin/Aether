@@ -36,7 +36,7 @@ const LandingPage = () => {
       setApiKey(apiKey);
 
       // Navigate to the main app
-      navigate('/functions'); // Ensure this path matches your routing
+      navigate('/flows'); // Ensure this path matches your routing
     } catch (error) {
       console.error('Login failed', error);
     }

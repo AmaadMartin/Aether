@@ -56,7 +56,7 @@ def evaluate_input_output_pair(input_data: EvaluationInput):
 
     # Evaluate the output if not a custom function and tier allows it
     tier = user_data.get("tier", "free")
-    if function["type"] != "custom_function" and tier != "free":
+    if function["type"] != "flow" and tier != "free":
         metrics = version_data.get("metrics", [])
         evaluation_scores = evaluate_output(
             task, metrics, input_payload, output_payload

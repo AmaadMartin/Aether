@@ -27,7 +27,8 @@ class AetherFunction:
             raise Exception("OpenAI key not set")
 
         call = self.init_call()
-        call.input("input", input_json)
+        for key in input_json:
+            call.input(key, input_json[key])
         params = self.get_parameters()
         prompt = params['prompt']
         model = params['model']

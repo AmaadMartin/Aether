@@ -18,9 +18,16 @@
     stroke: #1a6d9e;
     stroke-width: 2;
   }
+
+  .node-circle-selected-deployed {
+    fill: rgb(101, 0, 101);
+    stroke: rgb(101, 0, 101);
+    stroke-width: 2;
+  }
   
   .node-circle-deployed {
     fill: purple;
     stroke: purple;
     stroke-width: 2;
   }
+  

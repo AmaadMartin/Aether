@@ -1,7 +1,7 @@
 // src/Components/FunctionVersionPage.js
 
-import React, { useState, useEffect, useContext } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
   Box,
   Grid,
@@ -10,15 +10,18 @@ import {
   Typography,
   Snackbar,
   Alert,
-} from '@mui/material';
-import VersionTree from './VersionTree';
-import Logs from './Logs';
-import api from '../Services/api';
-import { AuthContext } from '../Contexts/AuthContext';
-import PromptEditor from './PromptEditor';
-import './FunctionVersionPage.css';
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import VersionTree from "./VersionTree";
+import Logs from "./Logs";
+import api from "../Services/api";
+import { AuthContext } from "../Contexts/AuthContext";
+import PromptEditor from "./PromptEditor";
+import "./FunctionVersionPage.css";
 
-const FunctionVersionPage = () => {
+const FunctionVersionPage = ({ isFlow = false }) => {
   const { functionId } = useParams();
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [parameters, setParameters] = useState({});
@@ -30,8 +33,8 @@ const FunctionVersionPage = () => {
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
 
   useEffect(() => {
@@ -39,10 +42,13 @@ const FunctionVersionPage = () => {
   }, []);
 
   useEffect(() => {
+    if (!selectedVersion && functionData) {
+      setSelectedVersion(functionData.current_version);
+    }
     if (selectedVersion) {
       fetchParametersForVersion();
     }
-    if (functionData && tier === 'free') {
+    if (functionData && tier === "free") {
       setSelectedVersion(functionData.current_version);
     }
   }, [selectedVersion, functionData]);
@@ -53,11 +59,11 @@ const FunctionVersionPage = () => {
       const func = response.data;
       setFunctionData(func);
     } catch (error) {
-      console.error('Error fetching function data:', error);
+      console.error("Error fetching function data:", error);
       setSnackbar({
         open: true,
-        message: 'Error fetching function data.',
-        severity: 'error',
+        message: "Error fetching function data.",
+        severity: "error",
       });
     }
   };
@@ -69,6 +75,7 @@ const FunctionVersionPage = () => {
 
     if (versionData) {
       setParameters(versionData.parameters || {});
+      console.log("Parameters set to:", versionData.parameters);
     } else {
       setParameters({});
     }
@@ -92,18 +99,18 @@ const FunctionVersionPage = () => {
       await api.updateParameters(userEmail, functionId, data);
       setSnackbar({
         open: true,
-        message: 'Parameters updated successfully.',
-        severity: 'success',
+        message: "Parameters updated successfully.",
+        severity: "success",
       });
       // Refresh the version tree
       setVersionTreeKey(versionTreeKey + 1);
       fetchFunctionData();
     } catch (error) {
-      console.error('Error updating parameters:', error);
+      console.error("Error updating parameters:", error);
       setSnackbar({
         open: true,
-        message: 'Error updating parameters.',
-        severity: 'error',
+        message: "Error updating parameters.",
+        severity: "error",
       });
     }
   };
@@ -114,18 +121,38 @@ const FunctionVersionPage = () => {
       setSnackbar({
         open: true,
         message: `Version ${selectedVersion} deployed successfully.`,
-        severity: 'success',
+        severity: "success",
       });
       // Update functionData to reflect the new current_version
       fetchFunctionData();
     } catch (error) {
-      console.error('Error deploying version:', error);
+      console.error("Error deploying version:", error);
       setSnackbar({
         open: true,
-        message: 'Error deploying version.',
-        severity: 'error',
+        message: "Error deploying version.",
+        severity: "error",
       });
     }
+  };
+
+  const handleCopyFunctionKey = (functionKey) => {
+    navigator.clipboard
+      .writeText(functionKey)
+      .then(() => {
+        setSnackbar({
+          open: true,
+          message: "Function Key copied to clipboard!",
+          severity: "success",
+        });
+      })
+      .catch((err) => {
+        console.error("Could not copy text: ", err);
+        setSnackbar({
+          open: true,
+          message: "Failed to copy Function Key.",
+          severity: "error",
+        });
+      });
   };
 
   const handleSnackbarClose = () => {
@@ -134,19 +161,19 @@ const FunctionVersionPage = () => {
 
   return (
     <Box className="function-version-container">
-      <Link to="/" className="back-link">
-        ← Back to Functions
-      </Link>
       <Grid container spacing={2}>
         {/* Conditionally render Sidebar with Version Tree based on tier */}
-        {tier !== 'free' && (
+        {tier !== "free" && (
           <Grid item xs={12} md={3} className="sidebar">
             <Box className="sidebar-content">
               <VersionTree
                 key={versionTreeKey}
                 functionId={functionId}
                 onVersionSelect={handleVersionSelect}
-                currentVersion={functionData ? functionData.current_version : null}
+                currentVersion={
+                  functionData ? functionData.current_version : null
+                }
+                setSnackbar={setSnackbar}
               />
             </Box>
           </Grid>
@@ -156,7 +183,7 @@ const FunctionVersionPage = () => {
         <Grid
           item
           xs={12}
-          md={tier === 'free' ? 12 : 9}
+          md={tier === "free" ? 12 : 9}
           className="main-content"
         >
           {selectedVersion && functionData ? (
@@ -167,10 +194,11 @@ const FunctionVersionPage = () => {
                 alignItems="center"
               >
                 <Typography variant="h5">
-                  {tier === 'free' ? '(For Version Tree Upgrade to Pro)' : ''}{' '}
-                  Version: {selectedVersion}{' '}
+                  {tier === "free" ? "(For Version Tree Upgrade to Pro)" : ""}{" "}
+                  Version: {selectedVersion}{" "}
                 </Typography>
-                {tier !== 'free' && (
+                <Box display="flex" alignItems="center" mb={2}></Box>
+                {tier !== "free" && (
                   <Button
                     variant="contained"
                     color="secondary"
@@ -179,6 +207,21 @@ const FunctionVersionPage = () => {
                     Deploy
                   </Button>
                 )}
+              </Box>
+              <Box display="flex" alignItems="center" mb={2}>
+                <Tooltip title="Copy Function Key">
+                  <IconButton
+                    onClick={() =>
+                      handleCopyFunctionKey(functionData.function_key)
+                    } // Wrap in an arrow function
+                    sx={{ ml: 1, fontSize: "small" }}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Typography variant="body2" color="textSecondary">
+                  {functionData.function_key}
+                </Typography>
               </Box>
               <Box className="prompt-editor-box">
                 {Object.keys(parameters).map((key) => {
@@ -200,7 +243,7 @@ const FunctionVersionPage = () => {
                         handleParameterChange(key, e.target.value)
                       }
                       fullWidth
-                      style={{ marginTop: '16px' }}
+                      style={{ marginTop: "16px" }}
                     />
                   );
                 })}
@@ -208,9 +251,9 @@ const FunctionVersionPage = () => {
                   variant="contained"
                   color="primary"
                   onClick={handleCommit}
-                  style={{ marginTop: '16px' }}
+                  style={{ marginTop: "16px" }}
                 >
-                  {tier === 'free' ? 'Update' : 'Modify and Commit'}
+                  {tier === "free" ? "Update" : "Commit Changes"}
                 </Button>
               </Box>
               <Box className="logs-container">
@@ -226,18 +269,17 @@ const FunctionVersionPage = () => {
           )}
         </Grid>
       </Grid>
-
       {/* Snackbar for Notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

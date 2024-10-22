@@ -22,7 +22,7 @@ import { AuthContext } from '../Contexts/AuthContext';
 import api from '../Services/api';
 import SchemaBuilder from './SchemaBuilder';
 
-const FunctionCreationPage = () => {
+const FunctionCreationPage = ({ isFlow }) => {
   const { userEmail } = useContext(AuthContext);
 
   const [functionName, setFunctionName] = useState('');
@@ -40,29 +40,25 @@ const FunctionCreationPage = () => {
   // Snackbar state variables
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  const handleFunctionTypeChange = (event) => {
-    setFunctionType(event.target.value);
-  };
-
   const handleCreateFunction = async () => {
     // Build the function data object
     const functionData = {
       name: functionName,
       task: functionTask,
-      type: functionType,
+      type: isFlow ? 'flow' : functionType,
       test_set: testSet,
     };
 
-    console.log("metrics", metrics);
+    console.log("model", model);
 
-    if (functionType === 'chat_completion') {
+    if (!isFlow) {
       functionData.prompt = prompt;
       functionData.model = model;
       functionData.temperature = parseFloat(temperature);
       functionData.input_schema = inputSchema;
       functionData.output_schema = outputSchema;
       functionData.metrics = metrics;
-    } else if (functionType === 'custom_function') {
+    } else if (isFlow) {
       // For custom functions, include metrics and parameters
       functionData.metrics = metrics;
       // Convert parameters array to an object
@@ -90,7 +86,7 @@ const FunctionCreationPage = () => {
   const resetForm = () => {
     setFunctionName('');
     setFunctionTask('');
-    setFunctionType('chat_completion');
+    setFunctionType(isFlow ? 'flow' : 'chat_completion');
     setPrompt('');
     setModel('gpt-4o-mini');
     setTemperature(0.7);
@@ -145,16 +141,13 @@ const FunctionCreationPage = () => {
 
   return (
     <Box sx={{ padding: 4 }}>
-      <Link to="/" className="back-link">
-        ← Back to Functions
-      </Link>
       <Typography variant="h4" gutterBottom>
-        Create New Function
+        Create New {isFlow ? 'Flow' : 'Function'}
       </Typography>
 
       {/* Function Name */}
       <TextField
-        label="Function Name"
+        label= {`${isFlow ? 'Flow Name' : 'Function Name'}`}
         value={functionName}
         onChange={(e) => setFunctionName(e.target.value)}
         fullWidth
@@ -163,24 +156,15 @@ const FunctionCreationPage = () => {
 
       {/* Function Task */}
       <TextField
-        label="Function Task"
+        label={`${isFlow ? 'Flow Task' : 'Function Task'}`}
         value={functionTask}
         onChange={(e) => setFunctionTask(e.target.value)}
         fullWidth
         margin="normal"
       />
 
-      {/* Function Type */}
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Function Type</InputLabel>
-        <Select value={functionType} onChange={handleFunctionTypeChange}>
-          <MenuItem value="chat_completion">Chat Completion</MenuItem>
-          <MenuItem value="custom_function">Custom Function</MenuItem>
-        </Select>
-      </FormControl>
-
       {/* Conditional Fields Based on Function Type */}
-      {functionType === 'chat_completion' && (
+      {!isFlow && (
         <>
           {/* Prompt */}
           <TextField
@@ -230,7 +214,7 @@ const FunctionCreationPage = () => {
         </>
       )}
 
-      {functionType === 'custom_function' && (
+      {isFlow && (
         <>
           {/* Parameters for Custom Function */}
           <Box sx={{ marginTop: 4 }}>
@@ -314,7 +298,7 @@ const FunctionCreationPage = () => {
           size="large"
           onClick={handleCreateFunction}
         >
-          Create Function
+          Create {isFlow ? 'Flow' : 'Function'}
         </Button>
       </Box>
 

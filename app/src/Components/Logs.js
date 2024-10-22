@@ -1,6 +1,6 @@
 // src/Components/Logs.js
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from "react";
 import {
   Typography,
   Box,
@@ -12,12 +12,13 @@ import {
   Button,
   Snackbar,
   Alert,
-} from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import './Logs.css';
-import api from '../Services/api';
-import { AuthContext } from '../Contexts/AuthContext';
+    Tooltip,
+} from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import "./Logs.css";
+import api from "../Services/api";
+import { AuthContext } from "../Contexts/AuthContext";
 
 const Logs = ({ functionId, versionName }) => {
   const [callsForFunction, setCallsForFunction] = useState([]);
@@ -25,7 +26,11 @@ const Logs = ({ functionId, versionName }) => {
   const { userEmail, tier } = useContext(AuthContext);
 
   // Snackbar state
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
     if (functionId && versionName) {
@@ -58,8 +63,12 @@ const Logs = ({ functionId, versionName }) => {
       // Reverse the array to show the latest calls first
       setCallsForFunction(versionData.calls.slice().reverse());
     } catch (error) {
-      console.error('Error fetching calls:', error);
-      setSnackbar({ open: true, message: "Error fetching logs.", severity: "error" });
+      console.error("Error fetching calls:", error);
+      setSnackbar({
+        open: true,
+        message: "Error fetching logs.",
+        severity: "error",
+      });
       setCallsForFunction([]);
     } finally {
       setLoading(false);
@@ -85,7 +94,9 @@ const Logs = ({ functionId, versionName }) => {
   if (!versionName) {
     return (
       <Box className="logs-message">
-        <Typography variant="h5">Please select a version from the tree.</Typography>
+        <Typography variant="h5">
+          Please select a version from the tree.
+        </Typography>
       </Box>
     );
   }
@@ -109,7 +120,7 @@ const Logs = ({ functionId, versionName }) => {
           color="primary"
           startIcon={<RefreshIcon />}
           onClick={handleRefresh}
-          style={{ marginTop: '16px' }}
+          style={{ marginTop: "16px" }}
         >
           Refresh
         </Button>
@@ -120,15 +131,25 @@ const Logs = ({ functionId, versionName }) => {
   return (
     <Box className="logs-content">
       {/* Refresh Button */}
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<RefreshIcon />}
-        onClick={handleRefresh}
-        style={{ marginBottom: '16px' }}
-      >
-        Refresh
-      </Button>
+      <Box display="flex" justifyContent="flex-end" mb={2}>
+        <Tooltip title="Refresh" >
+        <Button
+          variant="text"
+          color="primary"
+          onClick={handleRefresh}
+          sx={{
+            minWidth: "64px", // Increase the button size
+            minHeight: "64px", // Increase the button size
+            borderRadius: "0",
+            display: "flex", // Flexbox for centering the icon
+            justifyContent: "center", // Center the content horizontally
+            alignItems: "center", // Center the content vertically
+          }}
+        >
+          <RefreshIcon sx={{ fontSize: "36px" }} />{" "}
+        </Button>
+        </Tooltip>
+      </Box>
       {callsForFunction.map((call, index) => (
         <Accordion key={index} defaultExpanded>
           <AccordionSummary
@@ -137,7 +158,8 @@ const Logs = ({ functionId, versionName }) => {
             id={`panel${index}-header`}
           >
             <Typography>
-              Call {index + 1} - {new Date(call.timestamp).toLocaleString()} - Status: {call.status}
+              Call {index + 1} - {new Date(call.timestamp).toLocaleString()} -
+              Status: {call.status}
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
@@ -213,9 +235,13 @@ const Logs = ({ functionId, versionName }) => {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

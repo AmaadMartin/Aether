@@ -1,15 +1,19 @@
 /* src/Components/Logs.css */
 
-.logs-message {
-    padding: 32px;
+.call-paper {
+    padding: 16px;
+    position: relative;
   }
   
-  .logs-content {
-    padding: 16px;
-  }
-  
-  .call-paper {
-    padding: 16px;
+  .json-display-small {
+    background-color: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 12px;
+    max-height: 150px;
+    overflow-y: auto;
   }
   
   .json-display {

@@ -31,7 +31,7 @@ class Attribute(BaseModel):
 class FunctionSchema(BaseModel):
     name: str
     task: str
-    type: str  # 'chat_completion' or 'custom_function'
+    type: str  # 'chat_completion' or 'flow'
     input_schema: Optional[Dict[str, Any]] = None
     output_schema: Optional[Dict[str, Any]] = None
     parameters: Optional[Dict[str, Any]] = None  # For custom functions
@@ -88,3 +88,16 @@ class UpdateCallRequest(BaseModel):
     timestamp: Optional[str] = None
     function_key: Optional[str] = None
     version: Optional[str] = None
+
+class FunctionSchema(BaseModel):
+    name: str
+    task: str
+    type: str  # 'chat_completion' or 'flow'
+    prompt: Optional[str] = None
+    model: Optional[str] = None
+    temperature: Optional[float] = None
+    input_schema: Optional[Dict[str, Any]] = None
+    output_schema: Optional[Dict[str, Any]] = None
+    test_set: Optional[List[Dict[str, Any]]] = []
+    metrics: Optional[List[str]] = None
+    parameters: Optional[Dict[str, Any]] = None  # For flows

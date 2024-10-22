@@ -5,10 +5,28 @@ import Tree from "react-d3-tree";
 import "./VersionTree.css";
 import api from "../Services/api";
 import { AuthContext } from "../Contexts/AuthContext";
+import {
+  Box,
+  Grid,
+  TextField,
+  Button,
+  Typography,
+  Snackbar,
+  Alert,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { set } from "react-hook-form";
 
-const VersionTree = ({ functionId, onVersionSelect, currentVersion }) => {
+const VersionTree = ({
+  functionId,
+  onVersionSelect,
+  currentVersion,
+}) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [versionTreeData, setVersionTreeData] = useState(null);
+  const [functionKey, setFunctionKey] = useState(null);
   const { userEmail, tier } = useContext(AuthContext);
 
   useEffect(() => {
@@ -17,10 +35,12 @@ const VersionTree = ({ functionId, onVersionSelect, currentVersion }) => {
 
   const fetchVersionTree = async () => {
     try {
-      const func_response = await api.get(`/users/${encodeURIComponent(userEmail)}/function/${functionId}`);
+      const func_response = await api.get(
+        `/users/${encodeURIComponent(userEmail)}/function/${functionId}`
+      );
       const func = func_response.data.function;
       if (!func) return;
-
+      setFunctionKey(func.function_key);
       const tree = convertVersionTree(func.version_tree);
       setVersionTreeData(tree);
     } catch (error) {
@@ -52,7 +72,9 @@ const VersionTree = ({ functionId, onVersionSelect, currentVersion }) => {
           r={15}
           className={
             isSelected
-              ? "node-circle-selected"
+              ? isDeployed
+                ? "node-circle-selected-deployed"
+                : "node-circle-selected"
               : isDeployed
               ? "node-circle-deployed"
               : "node-circle"

@@ -16,13 +16,14 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import api from "../Services/api";
 import "./FunctionListPage.css";
-import TierUpgrade from "./TierUpgrade";
+import TierUpgrade from './TierUpgrade';
+
 
 const tierFeatures = {
-  Hobby: [
+  free: [
     "Function creation",
     "Version deployment (No version tree)",
     "Commit changes to the same version",
@@ -42,13 +43,12 @@ const tierFeatures = {
   ],
 };
 
-const FunctionListPage = () => {
+const FunctionListPage = ({ isFlow }) => {
   const navigate = useNavigate();
   const [functions, setFunctions] = useState([]);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const { userEmail, apiKey, tier, setTier, loading, error } =
     useContext(AuthContext);
-
-  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
 
   // Snackbar state variables
   const [snackbar, setSnackbar] = useState({
@@ -57,24 +57,44 @@ const FunctionListPage = () => {
     severity: "success",
   });
 
-  const handleCopyApiKey = (apiKey) => {
-    navigator.clipboard
-      .writeText(apiKey)
-      .then(() => {
-        setSnackbar({
-          open: true,
-          message: "API Key copied to clipboard!",
-          severity: "success",
-        });
-      })
-      .catch((err) => {
-        console.error("Could not copy API key: ", err);
-        setSnackbar({
-          open: true,
-          message: "Failed to copy API Key.",
-          severity: "error",
-        });
+  useEffect(() => {
+    if (userEmail && apiKey) {
+      fetchFunctions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userEmail, apiKey]);
+
+  const fetchFunctions = async () => {
+    try {
+      const response = await api.get(`/users/${encodeURIComponent(userEmail)}`);
+      const allFunctions = response.data?.functions || [];
+      // Filter functions based on isFlow
+      setFunctions(allFunctions);
+      setTier(response.data?.tier || "free"); // Update tier in context
+    } catch (error) {
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: "Failed to fetch functions.",
+        severity: "error",
       });
+    }
+  };
+
+  const handleCreateNew = () => {
+    navigate(isFlow ? "/flow-creation" : "/function-creation");
+  };
+
+  const handleFunctionClick = (functionKey) => {
+    navigate(isFlow ? `/flow/${functionKey}` : `/function/${functionKey}`);
+  };
+
+  const handleUpgradeClick = () => {
+    setUpgradeDialogOpen(true);
+  };
+
+  const handleUpgradeClose = () => {
+    setUpgradeDialogOpen(false);
   };
 
   const handleCopyFunctionKey = (functionKey) => {
@@ -97,41 +117,24 @@ const FunctionListPage = () => {
       });
   };
 
-  useEffect(() => {
-    if (userEmail && apiKey) {
-      fetchFunctions();
-    }
-  }, [userEmail, apiKey]);
-
-  const fetchFunctions = async () => {
-    try {
-      const response = await api.get(`/users/${encodeURIComponent(userEmail)}`);
-      setFunctions(response.data?.functions || []);
-      setTier(response.data?.tier || "Hobby"); // Update tier in context
-    } catch (error) {
-      console.error(error);
-      setSnackbar({
-        open: true,
-        message: "Failed to fetch functions.",
-        severity: "error",
+  const handleCopyApiKey = (apiKey) => {
+    navigator.clipboard
+      .writeText(apiKey)
+      .then(() => {
+        setSnackbar({
+          open: true,
+          message: "API Key copied to clipboard!",
+          severity: "success",
+        });
+      })
+      .catch((err) => {
+        console.error("Could not copy API key: ", err);
+        setSnackbar({
+          open: true,
+          message: "Failed to copy API Key.",
+          severity: "error",
+        });
       });
-    }
-  };
-
-  const handleCreateNewFunction = () => {
-    navigate("/function-creation");
-  };
-
-  const handleFunctionClick = (functionKey) => {
-    navigate(`/function/${functionKey}`);
-  };
-
-  const handleUpgradeClick = () => {
-    setUpgradeDialogOpen(true);
-  };
-
-  const handleUpgradeClose = () => {
-    setUpgradeDialogOpen(false);
   };
 
   const handleSnackbarClose = () => {
@@ -161,29 +164,12 @@ const FunctionListPage = () => {
         mb={2}
       >
         <Typography variant="h4" gutterBottom>
-          Your Functions
+          Your {isFlow ? "Flows" : "Functions"}
         </Typography>
         <Box display="flex" alignItems="center">
           <Typography variant="body1" style={{ marginRight: "8px" }}>
             Tier: {tier}
           </Typography>
-          <Tooltip
-            title={
-              <Box>
-                {tierFeatures[tier]?.map((feature, index) => (
-                  <Typography key={index} variant="body2">
-                    {feature}
-                  </Typography>
-                ))}
-              </Box>
-            }
-            arrow
-            placement="bottom"
-          >
-            <IconButton>
-              <HelpOutlineIcon />
-            </IconButton>
-          </Tooltip>
           <Button
             variant="outlined"
             color="secondary"
@@ -196,43 +182,67 @@ const FunctionListPage = () => {
 
       {/* TierUpgrade Dialog */}
       <TierUpgrade open={upgradeDialogOpen} onClose={handleUpgradeClose} />
-
-      {/* Create New Function Button */}
+      {/* Create New Function/Flow Button */}
       <Button
         variant="contained"
         color="primary"
-        onClick={handleCreateNewFunction}
+        onClick={handleCreateNew}
         className="create-function-button"
         sx={{ mb: 2 }}
       >
-        Create New Function
+        Create New {isFlow ? "Flow" : "Function"}
       </Button>
 
       <List className="function-list">
-        {functions.map((func) => (
-          <React.Fragment key={func.function_key}>
-            <ListItem className="function-list-item" divider>
-              <ListItemText
-                primary={func.name}
-                secondary={func.task}
-                onClick={() => handleFunctionClick(func.function_key)}
-                style={{ cursor: "pointer" }}
-              />
-              <Typography variant="body2" style={{ marginRight: "8px" }}>
-                {func.function_key}
-              </Typography>
-              <Tooltip title="Copy Function Key">
-                <IconButton
-                  edge="end"
-                  aria-label="copy"
-                  onClick={() => handleCopyFunctionKey(func.function_key)}
-                >
-                  <ContentCopyIcon />
-                </IconButton>
-              </Tooltip>
-            </ListItem>
-          </React.Fragment>
-        ))}
+        {functions.map((func) =>
+          isFlow && func.type === "flow" ? (
+            <React.Fragment key={func.function_key}>
+              <ListItem className="function-list-item" divider>
+                <ListItemText
+                  primary={func.name}
+                  secondary={func.task}
+                  onClick={() => handleFunctionClick(func.function_key)}
+                  style={{ cursor: "pointer" }}
+                />
+                <Typography variant="body2" style={{ marginRight: "8px" }}>
+                  {func.function_key}
+                </Typography>
+                <Tooltip title="Copy Function Key">
+                  <IconButton
+                    edge="end"
+                    aria-label="copy"
+                    onClick={() => handleCopyFunctionKey(func.function_key)}
+                  >
+                    <ContentCopyIcon />
+                  </IconButton>
+                </Tooltip>
+              </ListItem>
+            </React.Fragment>
+          ) : !isFlow && func.type === "chat_completion" ? (
+            <React.Fragment key={func.function_key}>
+              <ListItem className="function-list-item" divider>
+                <ListItemText
+                  primary={func.name}
+                  secondary={func.task}
+                  onClick={() => handleFunctionClick(func.function_key)}
+                  style={{ cursor: "pointer" }}
+                />
+                <Typography variant="body2" style={{ marginRight: "8px" }}>
+                  {func.function_key}
+                </Typography>
+                <Tooltip title="Copy Function Key">
+                  <IconButton
+                    edge="end"
+                    aria-label="copy"
+                    onClick={() => handleCopyFunctionKey(func.function_key)}
+                  >
+                    <ContentCopyIcon />
+                  </IconButton>
+                </Tooltip>
+              </ListItem>
+            </React.Fragment>
+          ) : null
+        )}
       </List>
 
       {/* API Key Section - Moved to Bottom Right */}
