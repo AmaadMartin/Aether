@@ -12,7 +12,7 @@ from utils import verify_token, get_user, save_user, get_max_tests, is_version_t
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from evaluation import evaluate_function
+from Evaluation import evaluate_function
 import boto3
 from config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
