@@ -41,7 +41,7 @@ def get_user(username: str):
     user_table = get_user_table()
     response = user_table.get_item(Key={"username": username})
     if "Item" not in response:
-        raise HTTPException(status_code=404, detail="User not found")
+        return None
     return response["Item"]
 
 
