@@ -1,11 +1,6 @@
-# library/_Aether/AetherAPI.py
 import os
-
-# from dotenv import load_dotenv
 import requests
 import aiohttp
-
-# load_dotenv()
 
 BASE_URL = "https://aether-ty31.onrender.com"
 
@@ -59,8 +54,7 @@ class AetherAPI:
         if response.status_code != 200:
             raise Exception(f"Error retrieving function data: {response.text}")
         function_data = response.json()
-        function.version = function_data["current_version"]
-        return function_data
+        return function_data["current_version"]
 
     def createCall(self, function, version, inputs, outputs, logs):
         headers = {"X-API-Key": self.api_key}
@@ -118,6 +112,7 @@ class AetherAPI:
             "logs": call.logs,
             "status": call._status,
         }
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{BASE_URL}/evaluate_call/{call.function_key}/{call.version}/{call.call_key}",
