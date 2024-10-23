@@ -34,7 +34,7 @@ def login(data: dict):
                 "username": email,
                 "functions": [],
                 "api_key": user_api_key,
-                "tier": "free",  # Default tier
+                "tier": "pro",  # Default tier
             }
             save_user(user_data)
         else:
@@ -44,16 +44,14 @@ def login(data: dict):
                 user_data["api_key"] = user_api_key
                 save_user(user_data)
             if "tier" not in user_data:
-                user_data["tier"] = "free"
+                user_data["tier"] = "pro"
                 save_user(user_data)
             user_api_key = user_data["api_key"]
 
         return {
             "email": email,
             "api_key": user_api_key,
-            "tier": user_data.get("tier", "free"),
+            "tier": user_data.get("tier", "pro"),
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
