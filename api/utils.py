@@ -11,6 +11,7 @@ import secrets
 from config import GOOGLE_CLIENT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 from typing import Any, Dict
 
+
 oauth2_scheme = HTTPBearer()
 
 
@@ -50,6 +51,7 @@ def save_user(user_data: Dict[str, Any]):
     user_table = get_user_table()
     user_table.put_item(Item=user_data)
 
+
 def save_function(api_key, function):
     user_data = find_user_by_api_key(api_key)
     if not user_data:
@@ -57,7 +59,11 @@ def save_function(api_key, function):
 
     functions = user_data.get("functions", [])
     function_index = next(
-        (i for i, f in enumerate(functions) if f.get("function_key") == function["function_key"]),
+        (
+            i
+            for i, f in enumerate(functions)
+            if f.get("function_key") == function["function_key"]
+        ),
         None,
     )
 
@@ -88,6 +94,7 @@ def is_version_tree_enabled(tier: str) -> bool:
 def generate_api_key():
     return secrets.token_hex(16)
 
+
 # Add the new function
 def find_user_by_api_key(api_key: str):
     user_table = get_user_table()
@@ -98,6 +105,7 @@ def find_user_by_api_key(api_key: str):
     if "Items" not in response or len(response["Items"]) == 0:
         return None
     return response["Items"][0]
+
 
 def find_function_by_api_and_function_key(api_key: str, function_key: str):
     user_data = find_user_by_api_key(api_key)

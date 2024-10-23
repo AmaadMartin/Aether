@@ -5,6 +5,7 @@ from utils import get_user, save_user, generate_api_key
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from config import GOOGLE_CLIENT_ID
+from datetime import datetime
 
 router = APIRouter()
 
@@ -35,6 +36,7 @@ def login(data: dict):
                 "functions": [],
                 "api_key": user_api_key,
                 "tier": "pro",  # Default tier
+                "created_at": str(datetime.now().strftime("%Y-%m-%d")),
             }
             save_user(user_data)
         else:
