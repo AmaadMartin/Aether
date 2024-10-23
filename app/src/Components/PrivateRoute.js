@@ -2,12 +2,24 @@ import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../Contexts/AuthContext';
 import PropTypes from 'prop-types';
+import CircularProgress from "@mui/material/CircularProgress";
+import { Box } from "@mui/material";
 
 const PrivateRoute = ({ children }) => {
   const { userEmail, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <div>Loading...</div>; // Or a spinner component
+    return (
+            <Box
+        className="logs-message"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <CircularProgress />
+      </Box>
+    );// Or a spinner component
   }
 
   if (!userEmail) {

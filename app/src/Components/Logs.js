@@ -4,21 +4,17 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   Typography,
   Box,
-  Paper,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Grid,
   Button,
   Snackbar,
   Alert,
-    Tooltip,
+  Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import "./Logs.css";
 import api from "../Services/api";
 import { AuthContext } from "../Contexts/AuthContext";
+import CallItem from "./CallItem";
 
 const Logs = ({ functionId, versionName }) => {
   const [callsForFunction, setCallsForFunction] = useState([]);
@@ -94,36 +90,50 @@ const Logs = ({ functionId, versionName }) => {
   if (!versionName) {
     return (
       <Box className="logs-message">
-        <Typography variant="h5">
-          Please select a version from the tree.
-        </Typography>
+        <Typography variant="h5">Please select a version from the tree.</Typography>
       </Box>
     );
   }
 
   if (loading) {
     return (
-      <Box className="logs-message">
-        <Typography variant="h5">Loading logs...</Typography>
+      <Box
+        className="logs-message"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <CircularProgress />
       </Box>
     );
   }
 
   if (callsForFunction.length === 0) {
     return (
-      <Box className="logs-message">
+      <Box display="flex" justifyContent="space-between">
         <Typography variant="h5" color="error">
-          No logs found for this version yet.
+          No logs found yet
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<RefreshIcon />}
-          onClick={handleRefresh}
-          style={{ marginTop: "16px" }}
-        >
-          Refresh
-        </Button>
+        <Box display="flex" justifyContent="flex-end" mb={2}>
+          <Tooltip title="Refresh">
+            <Button
+              variant="text"
+              color="primary"
+              onClick={handleRefresh}
+              sx={{
+                minWidth: "64px",
+                minHeight: "64px",
+                borderRadius: "0",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <RefreshIcon sx={{ fontSize: "36px" }} />{" "}
+            </Button>
+          </Tooltip>
+        </Box>
       </Box>
     );
   }
@@ -132,102 +142,26 @@ const Logs = ({ functionId, versionName }) => {
     <Box className="logs-content">
       {/* Refresh Button */}
       <Box display="flex" justifyContent="flex-end" mb={2}>
-        <Tooltip title="Refresh" >
-        <Button
-          variant="text"
-          color="primary"
-          onClick={handleRefresh}
-          sx={{
-            minWidth: "64px", // Increase the button size
-            minHeight: "64px", // Increase the button size
-            borderRadius: "0",
-            display: "flex", // Flexbox for centering the icon
-            justifyContent: "center", // Center the content horizontally
-            alignItems: "center", // Center the content vertically
-          }}
-        >
-          <RefreshIcon sx={{ fontSize: "36px" }} />{" "}
-        </Button>
+        <Tooltip title="Refresh">
+          <Button
+            variant="text"
+            color="primary"
+            onClick={handleRefresh}
+            sx={{
+              minWidth: "64px",
+              minHeight: "64px",
+              borderRadius: "0",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <RefreshIcon sx={{ fontSize: "36px" }} />{" "}
+          </Button>
         </Tooltip>
       </Box>
       {callsForFunction.map((call, index) => (
-        <Accordion key={index} defaultExpanded>
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            aria-controls={`panel${index}-content`}
-            id={`panel${index}-header`}
-          >
-            <Typography>
-              Call {index + 1} - {new Date(call.timestamp).toLocaleString()} -
-              Status: {call.status}
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              {/* Input */}
-              <Grid item xs={12} md={6}>
-                <Paper className="call-paper">
-                  <Typography variant="h6" gutterBottom>
-                    Input
-                  </Typography>
-                  <pre className="json-display">
-                    {JSON.stringify(call.inputs, null, 2)}
-                  </pre>
-                </Paper>
-              </Grid>
-              {/* Output */}
-              <Grid item xs={12} md={6}>
-                <Paper className="call-paper">
-                  <Typography variant="h6" gutterBottom>
-                    Output
-                  </Typography>
-                  <pre className="json-display">
-                    {JSON.stringify(call.outputs, null, 2)}
-                  </pre>
-                </Paper>
-              </Grid>
-              {/* Logs */}
-              {call.logs && call.logs.length > 0 && (
-                <Grid item xs={12}>
-                  <Paper className="call-paper">
-                    <Typography variant="h6" gutterBottom>
-                      Logs
-                    </Typography>
-                    <pre className="json-display">
-                      {JSON.stringify(call.logs, null, 2)}
-                    </pre>
-                  </Paper>
-                </Grid>
-              )}
-              {/* Evaluation */}
-              {call.evaluation && Object.keys(call.evaluation).length > 0 ? (
-                <Grid item xs={12}>
-                  <Paper className="call-paper">
-                    <Typography variant="h6" gutterBottom>
-                      Evaluation
-                    </Typography>
-                    <pre className="json-display">
-                      {JSON.stringify(call.evaluation, null, 2)}
-                    </pre>
-                  </Paper>
-                </Grid>
-              ) : (
-                tier === "free" && (
-                  <Grid item xs={12}>
-                    <Paper className="call-paper">
-                      <Typography variant="h6" gutterBottom>
-                        Evaluation
-                      </Typography>
-                      <Typography variant="body1">
-                        Upgrade to Pro to see evaluation metrics.
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                )
-              )}
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+        <CallItem key={index} call={call} index={index} />
       ))}
 
       {/* Snackbar for Notifications */}

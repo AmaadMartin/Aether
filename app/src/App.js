@@ -21,6 +21,8 @@ import UpgradeEnterprisePage from "./Pages/UpgradeEnterprisePage";
 import Navbar from "./Components/Navbar";
 import DocumentationPage from "./Pages/DocumentationPage";
 import Docs from "./Pages/Docs";
+import CircularProgress from "@mui/material/CircularProgress";
+import { Box } from "@mui/material";
 
 const theme = createTheme({
   // Customize your theme here if needed
@@ -125,7 +127,17 @@ const LandingWrapper = () => {
   const { userEmail, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <Box
+        className="logs-message"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return userEmail ? <Navigate to="/functions" /> : <LandingPage />;

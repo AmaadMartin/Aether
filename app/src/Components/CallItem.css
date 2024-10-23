@@ -1,0 +1,15 @@
+/* src/Components/Logs.css or src/Components/CallItem.css */
+
+.call-paper {
+    padding: 16px;
+  }
+  
+  .json-display {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 14px;
+  }
+  

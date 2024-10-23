@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { set } from "react-hook-form";
+import { CircularProgress } from "@mui/material";
 
 const VersionTree = ({
   functionId,
@@ -121,7 +122,15 @@ const VersionTree = ({
           renderCustomNodeElement={renderCustomNodeElement}
         />
       ) : (
-        <p>Loading version tree...</p>
+        <Box
+        className="logs-message"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <CircularProgress />
+      </Box>
       )}
     </div>
   );

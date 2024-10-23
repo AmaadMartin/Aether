@@ -1,5 +1,5 @@
 // src/Components/FunctionListPage.js
-
+import CircularProgress from "@mui/material/CircularProgress";
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../Contexts/AuthContext";
 import {
@@ -16,11 +16,10 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import api from "../Services/api";
 import "./FunctionListPage.css";
-import TierUpgrade from '../Components/TierUpgrade';
-
+import TierUpgrade from "../Components/TierUpgrade";
 
 const tierFeatures = {
   free: [
@@ -142,7 +141,17 @@ const FunctionListPage = ({ isFlow }) => {
   };
 
   if (loading) {
-    return <Typography>Loading...</Typography>;
+    return (
+      <Box
+        className="logs-message"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
@@ -193,57 +202,69 @@ const FunctionListPage = ({ isFlow }) => {
         Create New {isFlow ? "Flow" : "Function"}
       </Button>
 
-      <List className="function-list">
-        {functions.map((func) =>
-          isFlow && func.type === "flow" ? (
-            <React.Fragment key={func.function_key}>
-              <ListItem className="function-list-item" divider>
-                <ListItemText
-                  primary={func.name}
-                  secondary={func.task}
-                  onClick={() => handleFunctionClick(func.function_key)}
-                  style={{ cursor: "pointer" }}
-                />
-                <Typography variant="body2" style={{ marginRight: "8px" }}>
-                  {func.function_key}
-                </Typography>
-                <Tooltip title="Copy Function Key">
-                  <IconButton
-                    edge="end"
-                    aria-label="copy"
-                    onClick={() => handleCopyFunctionKey(func.function_key)}
-                  >
-                    <ContentCopyIcon />
-                  </IconButton>
-                </Tooltip>
-              </ListItem>
-            </React.Fragment>
-          ) : !isFlow && func.type === "chat_completion" ? (
-            <React.Fragment key={func.function_key}>
-              <ListItem className="function-list-item" divider>
-                <ListItemText
-                  primary={func.name}
-                  secondary={func.task}
-                  onClick={() => handleFunctionClick(func.function_key)}
-                  style={{ cursor: "pointer" }}
-                />
-                <Typography variant="body2" style={{ marginRight: "8px" }}>
-                  {func.function_key}
-                </Typography>
-                <Tooltip title="Copy Function Key">
-                  <IconButton
-                    edge="end"
-                    aria-label="copy"
-                    onClick={() => handleCopyFunctionKey(func.function_key)}
-                  >
-                    <ContentCopyIcon />
-                  </IconButton>
-                </Tooltip>
-              </ListItem>
-            </React.Fragment>
-          ) : null
-        )}
-      </List>
+      {functions.length > 0 ? (
+        <List className="function-list">
+          {functions.map((func) =>
+            isFlow && func.type === "flow" ? (
+              <React.Fragment key={func.function_key}>
+                <ListItem className="function-list-item" divider>
+                  <ListItemText
+                    primary={func.name}
+                    secondary={func.task}
+                    onClick={() => handleFunctionClick(func.function_key)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <Typography variant="body2" style={{ marginRight: "8px" }}>
+                    {func.function_key}
+                  </Typography>
+                  <Tooltip title="Copy Function Key">
+                    <IconButton
+                      edge="end"
+                      aria-label="copy"
+                      onClick={() => handleCopyFunctionKey(func.function_key)}
+                    >
+                      <ContentCopyIcon />
+                    </IconButton>
+                  </Tooltip>
+                </ListItem>
+              </React.Fragment>
+            ) : !isFlow && func.type === "chat_completion" ? (
+              <React.Fragment key={func.function_key}>
+                <ListItem className="function-list-item" divider>
+                  <ListItemText
+                    primary={func.name}
+                    secondary={func.task}
+                    onClick={() => handleFunctionClick(func.function_key)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <Typography variant="body2" style={{ marginRight: "8px" }}>
+                    {func.function_key}
+                  </Typography>
+                  <Tooltip title="Copy Function Key">
+                    <IconButton
+                      edge="end"
+                      aria-label="copy"
+                      onClick={() => handleCopyFunctionKey(func.function_key)}
+                    >
+                      <ContentCopyIcon />
+                    </IconButton>
+                  </Tooltip>
+                </ListItem>
+              </React.Fragment>
+            ) : null
+          )}
+        </List>
+      ) : (
+        <Box
+          className="logs-message"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          flexDirection="column"
+        >
+          <CircularProgress />
+        </Box>
+      )}
 
       {/* API Key Section - Moved to Bottom Right */}
       <Box
