@@ -19,25 +19,25 @@ const Navbar = () => {
       position="static"
       sx={{ backgroundColor: "#eff8ff", color: "#000" }}
     >
-    {userEmail && (
-      <Toolbar>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between", // Pushes items to the far ends of the container
-            alignItems: "center",
-            width: "100%", // Makes sure the box takes the full width of the navbar
-          }}
-        >
-          {/* Left side: Logo and Navigation Buttons */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <NavLink to="/flows">
-              <img
-                src="/The_Aether_Black.png"
-                alt="Aether Logo"
-                style={{ height: "50px", cursor: "pointer" }}
-              />
-            </NavLink>
+      {userEmail && (
+        <Toolbar>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between", // Pushes items to the far ends of the container
+              alignItems: "center",
+              width: "100%", // Makes sure the box takes the full width of the navbar
+            }}
+          >
+            {/* Left side: Logo and Navigation Buttons */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <NavLink to="/flows">
+                <img
+                  src="/The_Aether_Black.png"
+                  alt="Aether Logo"
+                  style={{ height: "50px", cursor: "pointer" }}
+                />
+              </NavLink>
               <>
                 <Button
                   color="inherit"
@@ -55,16 +55,24 @@ const Navbar = () => {
                 >
                   Functions
                 </Button>
+                <Button
+                  color="inherit"
+                  component={NavLink}
+                  to="/docs"
+                  sx={{ ml: 2 }}
+                >
+                  Docs
+                </Button>
               </>
-          </Box>
+            </Box>
 
-          {/* Right side: Logout Button */}
+            {/* Right side: Logout Button */}
             <Button color="inherit" component={NavLink} onClick={handleLogout}>
               Logout
             </Button>
-        </Box>
-      </Toolbar>
-    )}
+          </Box>
+        </Toolbar>
+      )}
     </AppBar>
   );
 };

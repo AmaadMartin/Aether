@@ -14,6 +14,7 @@ import AuthProvider, { AuthContext } from "./Contexts/AuthContext";
 import PrivateRoute from "./Components/PrivateRoute";
 import UpgradeEnterprisePage from './Components/UpgradeEnterprisePage';
 import Navbar from './Components/Navbar';
+import Docs from './Pages/Docs'
 
 const theme = createTheme({
   // Customize your theme here if needed
@@ -92,6 +93,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <UpgradeEnterprisePage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/docs"
+                  element={
+                    <PrivateRoute>
+                      <Docs />
                     </PrivateRoute>
                   }
                 />
