@@ -20,7 +20,7 @@ import {
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { AuthContext } from '../Contexts/AuthContext';
 import api from '../Services/api';
-import SchemaBuilder from './SchemaBuilder';
+import SchemaBuilder from '../Components/SchemaBuilder';
 
 const FunctionCreationPage = ({ isFlow }) => {
   const { userEmail } = useContext(AuthContext);

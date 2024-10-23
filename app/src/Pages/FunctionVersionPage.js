@@ -14,11 +14,11 @@ import {
   Tooltip,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import VersionTree from "./VersionTree";
-import Logs from "./Logs";
+import VersionTree from "../Components/VersionTree";
+import Logs from "../Components/Logs";
 import api from "../Services/api";
 import { AuthContext } from "../Contexts/AuthContext";
-import PromptEditor from "./PromptEditor";
+import PromptEditor from "../Components/PromptEditor";
 import "./FunctionVersionPage.css";
 
 const FunctionVersionPage = ({ isFlow = false }) => {

@@ -19,7 +19,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import api from "../Services/api";
 import "./FunctionListPage.css";
-import TierUpgrade from './TierUpgrade';
+import TierUpgrade from '../Components/TierUpgrade';
 
 
 const tierFeatures = {

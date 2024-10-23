@@ -99,11 +99,7 @@ const LandingPage = () => {
           </Grid>
         </Grid>
 
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-            <iframe src="https://discord.com/widget?id=1296287334924423219&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
-          </Box>
-        </Grid>
+
         {/* How It Works Section */}
         <Box sx={{ mt: 12 }}>
           <Typography variant="h4" component="h3" gutterBottom align="center">
@@ -135,6 +131,12 @@ const LandingPage = () => {
             ></iframe>
           </Box>
         </Box>
+
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+            <iframe src="https://discord.com/widget?id=1296287334924423219&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+          </Box>
+        </Grid>
       </Container>
     </Box>
   );

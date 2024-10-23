@@ -181,20 +181,15 @@ def update_parameters(
         
 
         # Create new version data
-        if function["type"] == "flow":
-            version_data = {
-                "parameters": update.new_parameters or {},
-                "calls": [],
-                "date": datetime.now().isoformat(),
-            }
-        else:
-            version_data = {
-                "prompt": update.new_prompt,
-                "model": update.new_model,
-                "temperature": update.new_temperature,
-                "calls": [],
-                "date": datetime.now().isoformat(),
-            }
+        for key, value in update.new_parameters.items():
+            if type(value) == float:
+                update.new_parameters[key] = Decimal(str(value))
+        
+        version_data = {
+            "parameters": update.new_parameters or {},
+            "calls": [],
+            "date": datetime.now().isoformat(),
+        }
 
         function["version_map"][versionId] = version_data
 

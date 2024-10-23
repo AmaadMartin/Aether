@@ -3,18 +3,24 @@
 import React, { useContext } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import FunctionListPage from "./Components/FunctionListPage";
-import FunctionCreationPage from "./Components/FunctionCreationPage";
-import FunctionVersionPage from "./Components/FunctionVersionPage";
-import LandingPage from "./Components/LandingPage";
+import FunctionListPage from "./Pages/FunctionListPage";
+import FunctionCreationPage from "./Pages/FunctionCreationPage";
+import FunctionVersionPage from "./Pages/FunctionVersionPage";
+import LandingPage from "./Pages/LandingPage";
 import AppErrorBoundary from "./Components/ErrorBoundary";
 import AuthProvider, { AuthContext } from "./Contexts/AuthContext";
 import PrivateRoute from "./Components/PrivateRoute";
-import UpgradeEnterprisePage from './Components/UpgradeEnterprisePage';
-import Navbar from './Components/Navbar';
-import Docs from './Pages/Docs'
+import UpgradeEnterprisePage from "./Pages/UpgradeEnterprisePage";
+import Navbar from "./Components/Navbar";
+import DocumentationPage from "./Pages/DocumentationPage";
+import Docs from "./Pages/Docs";
 
 const theme = createTheme({
   // Customize your theme here if needed
@@ -97,10 +103,10 @@ function App() {
                   }
                 />
                 <Route
-                  path="/docs"
+                  path="/docs/*"
                   element={
                     <PrivateRoute>
-                      <Docs />
+                      <DocumentationPage />
                     </PrivateRoute>
                   }
                 />

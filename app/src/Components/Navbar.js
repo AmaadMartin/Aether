@@ -55,12 +55,7 @@ const Navbar = () => {
                 >
                   Functions
                 </Button>
-                <Button
-                  color="inherit"
-                  component={NavLink}
-                  to="/docs"
-                  sx={{ ml: 2 }}
-                >
+                <Button color="inherit" component={NavLink} to="/docs" sx = {{ml: 2}}>
                   Docs
                 </Button>
               </>
