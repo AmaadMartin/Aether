@@ -8,15 +8,16 @@ from models import (
     DeployVersionSchema,
     EnterpriseUpgradeRequest,
 )
-from utils import verify_token, get_user, save_user, get_max_tests, is_version_tree_enabled
+from utils import verify_token, get_user, save_user, get_max_tests, is_version_tree_enabled, dynamodb
 import uuid
 from datetime import datetime
 from decimal import Decimal
 from Evaluation import evaluate_function
-import boto3
 from config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 router = APIRouter()
+
+enterprise_table = dynamodb.Table("enterprise_requests")
 
 
 @router.post("/users/{username}/functions")
@@ -293,12 +294,6 @@ def get_user_data(username: str, user_email: str = Depends(verify_token)):
 def upgrade_enterprise(request: EnterpriseUpgradeRequest):
     # Handle the enterprise upgrade request
     try:
-        session = boto3.Session(
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        )
-        dynamodb = session.resource("dynamodb", region_name="us-east-1")
-        enterprise_table = dynamodb.Table("enterprise_requests")
         enterprise_table.put_item(
             Item={
                 "request_id": uuid.uuid4().hex,

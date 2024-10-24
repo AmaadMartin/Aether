@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from models import EvaluationInput
-from utils import verify_token, get_user, save_user
+from utils import verify_token, get_user, save_user, user_table
 from typing import Any
 from Evaluation import evaluate_output
 import uuid
@@ -21,7 +21,6 @@ def evaluate_input_output_pair(input_data: EvaluationInput):
     api_key = input_data.api_key
 
     # Find user with api_key
-    user_table = get_user_table()
     scan_kwargs = {
         "FilterExpression": "api_key = :api_key",
         "ExpressionAttributeValues": {":api_key": api_key},

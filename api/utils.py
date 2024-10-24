@@ -13,6 +13,13 @@ from typing import Any, Dict
 
 
 oauth2_scheme = HTTPBearer()
+session = boto3.Session(
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+)
+dynamodb = session.resource("dynamodb", region_name="us-east-1")
+user_table = dynamodb.Table("userbase")
+
 
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
@@ -28,18 +35,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(oauth2_sche
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
 
-
-def get_user_table():
-    session = boto3.Session(
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    )
-    dynamodb = session.resource("dynamodb", region_name="us-east-1")
-    return dynamodb.Table("userbase")
-
-
 def get_user(username: str):
-    user_table = get_user_table()
     response = user_table.get_item(Key={"username": username})
     if "Item" not in response:
         return None
@@ -48,7 +44,6 @@ def get_user(username: str):
 
 def save_user(user_data: Dict[str, Any]):
     # print("Saving user data:", user_data["functions"][10])
-    user_table = get_user_table()
     user_table.put_item(Item=user_data)
 
 
@@ -97,7 +92,6 @@ def generate_api_key():
 
 # Add the new function
 def find_user_by_api_key(api_key: str):
-    user_table = get_user_table()
     scan_kwargs = {
         "FilterExpression": Attr("api_key").eq(api_key),
     }
